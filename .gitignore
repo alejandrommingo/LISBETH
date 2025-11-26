@@ -26,3 +26,7 @@ dist/
 
 # macOS / Linux
 .DS_Store
+
+# Internal files
+CONTRIBUTING.md
+PLAN_*.md
