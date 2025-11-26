@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 import unicodedata
 
+import trafilatura
 from bs4 import BeautifulSoup
 
 _REMOVABLE_TAGS = {
@@ -164,19 +165,45 @@ def extract_plain_text(
     keyword: str | None = None,
     min_paragraph_chars: int | None = None,
     require_keyword: bool = False,
+    strict_mode: bool = True,
 ) -> str:
     """Convierte HTML en un texto plano normalizado.
 
-    - Elimina etiquetas no informativas (scripts, estilos, iframes).
-    - Mantiene saltos de línea simples para separar párrafos.
-    - Normaliza espacios y caracteres Unicode.
-    - Permite aplicar un umbral mínimo por párrafo y exigir que ``keyword``
-      aparezca en al menos un párrafo "denso".
+    Intenta usar trafilatura primero. Si falla o devuelve vacío, usa el método
+    legacy basado en BeautifulSoup.
     """
 
     if not html or not html.strip():
         return ""
 
+    # Intento principal con trafilatura
+    try:
+        traf_text = trafilatura.extract(
+            html,
+            include_comments=False,
+            include_tables=False,
+            no_fallback=False,
+            target_language="es",
+        )
+        if traf_text:
+            # Trafilatura devuelve texto limpio, pero aplicamos normalización básica
+            normalized = unicodedata.normalize("NFC", traf_text)
+            # Verificación de keyword si es requerida
+            if require_keyword and keyword:
+                if keyword.casefold() not in normalized.casefold():
+                    # Si trafilatura extrajo texto pero no tiene la keyword,
+                    # podría ser un falso positivo (menú, etc) o que la keyword estaba en el título
+                    # y trafilatura no lo incluyó.
+                    # Damos una oportunidad al legacy si es estricto.
+                    pass
+                else:
+                    return normalized.strip()
+            else:
+                return normalized.strip()
+    except Exception:
+        pass
+
+    # --- FALLBACK LEGACY ---
     soup = BeautifulSoup(html, "lxml")
     for tag_name in _REMOVABLE_TAGS:
         for element in soup.find_all(tag_name):
@@ -242,7 +269,11 @@ def extract_plain_text(
     if not paragraphs:
         return ""
 
-    threshold = _DEFAULT_MIN_PARAGRAPH_CHARS if min_paragraph_chars is None else max(0, min_paragraph_chars)
+    threshold = (
+        _DEFAULT_MIN_PARAGRAPH_CHARS
+        if min_paragraph_chars is None
+        else max(0, min_paragraph_chars)
+    )
     keyword_cf = keyword.casefold() if keyword else None
     filtered_paragraphs: list[str] = []
     keyword_paragraph_found = False
@@ -259,8 +290,12 @@ def extract_plain_text(
         )
 
         if threshold > 0 and len(normalized_paragraph) < threshold:
-            # Se descartan párrafos sin densidad suficiente, aunque contengan la keyword.
-            continue
+            # En modo estricto, descartamos párrafos cortos.
+            # En modo laxo, si contiene la keyword, lo dejamos pasar aunque sea corto.
+            if strict_mode:
+                continue
+            if not contains_keyword:
+                continue
 
         filtered_paragraphs.append(normalized_paragraph)
         if contains_keyword:

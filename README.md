@@ -1,122 +1,92 @@
 # Lisbeth News Harvester
 
-Este proyecto automatiza la descarga de noticias de periódicos peruanos. A continuación se detallan los pasos para crear y usar el entorno virtual de Python, instalar dependencias y ejecutar la herramienta.
+**Lisbeth News Harvester** es una herramienta robusta y escalable diseñada para recolectar, procesar y estructurar noticias de medios peruanos. Su objetivo principal es facilitar el análisis de reputación y tendencias mediante la creación de corpus de texto de alta calidad.
 
-## Requisitos previos
+El sistema se centra en **GDELT** como fuente primaria masiva, complementada por **Google News** y **RSS directos**, e incorpora mecanismos avanzados de filtrado, limpieza y puntuación de relevancia.
 
-- Python 3.12 o superior (se recomienda usar la misma versión utilizada en este repositorio).
-- `pip` actualizado.
+## Características Principales
 
-## Crear el entorno virtual
+*   **Fuentes Masivas**:
+    *   **GDELT**: Cobertura histórica con más de 30 medios peruanos (El Comercio, La República, RPP, Ojo Público, etc.).
+    *   **Google News & RSS**: Fuentes complementarias para noticias recientes.
+*   **Calidad de Datos**:
+    *   **Extracción Limpia**: Uso de `trafilatura` para obtener texto plano sin ruido de navegación.
+    *   **Puntuación de Relevancia**: Algoritmo que califica (0-100) cada artículo basándose en la presencia de la palabra clave.
+        *   **Título**: 40 puntos si aparece la keyword.
+        *   **Lead (Primeros 200 caracteres)**: 30 puntos si aparece.
+        *   **Cuerpo**: 10 puntos por cada aparición (hasta un máximo de 30 puntos).
+        *   *Nota*: El cálculo es insensible a mayúsculas y acentos.
+    *   **Resiliencia**: Sistema anti-bloqueo con rotación de User-Agents y recuperación automática de enlaces rotos (403/404) vía **Wayback Machine**.
+*   **Filtrado Avanzado**:
+    *   Selección de medios por nombre (`--media elcomercio rpp`).
+    *   Selección de fuentes de recolección (`--sources gdelt google`).
 
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-```
+## Instalación
 
-En Windows PowerShell, reemplaza el segundo comando por:
+1.  **Clonar el repositorio**:
+    ```bash
+    git clone https://github.com/alejandrommingo/LISBETH.git
+    cd LISBETH
+    ```
 
-```powershell
-.venv\Scripts\Activate.ps1
-```
+2.  **Crear entorno virtual e instalar dependencias**:
+    ```bash
+    python3 -m venv .venv
+    source .venv/bin/activate
+    pip install -r requirements.txt
+    ```
 
-## Instalar dependencias
+3.  **Configuración (Opcional)**:
+    El archivo `.env` permite ajustar parámetros globales, aunque el sistema funciona con valores por defecto optimizados.
 
-Con el entorno virtual activo:
+## Uso: El "Golden Path"
 
-```bash
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
-python -m pip install -e .
-# Dependencias opcionales para desarrollo
-python -m pip install -e .[dev]
-```
+El caso de uso principal es descargar noticias históricas sobre un tema específico (ej. "Yape") de todos los medios peruanos disponibles.
 
-## Estructura sugerida del proyecto
-
-```
-Lisbeth/
-├── README.md
-├── requirements.txt
-├── pyproject.toml
-└── src/
-    └── news_harvester/
-        ├── __init__.py
-        ├── __main__.py
-        ├── cli.py
-        ├── config.py
-        ├── models.py
-        ├── collectors/
-        │   ├── __init__.py
-        │   └── gdelt.py
-        ├── processing/
-        │   ├── __init__.py
-        │   └── text.py
-        └── storage/
-            ├── __init__.py
-            └── table.py
-```
-
-## Uso rápido
-
-### Subcomando `fetch`
-
-Consulta la API pública de GDELT para obtener titulares y, opcionalmente, descargar el HTML de las noticias.
+### Comando Prototipo
 
 ```bash
-# Ejemplo: noticias que mencionan "Yape" entre el 1 de marzo y el 1 de abril de 2020
-python -m news_harvester fetch \
+PYTHONPATH=src python -m news_harvester prototype \
     --keyword "Yape" \
     --from 2020-03-01 \
-    --to 2020-04-01 \
-    --download-html
+    --to 2020-05-01 \
+    --media all \
+    --output data/yape_dataset.csv
 ```
 
-Por defecto se filtra por dominios peruanos (`elcomercio.pe`, `gestion.pe`, etc.) y se genera un archivo JSON en `data/`. Utiliza `--output` para personalizar la ruta o `--domains` para ampliar la lista de medios válidos.
+### Argumentos Clave
 
-### Subcomando `prototype`
+*   `--keyword`: Término de búsqueda (ej. "Yape", "Vizcarra", "BCP").
+*   `--from` / `--to`: Rango de fechas (YYYY-MM-DD).
+*   `--media`: Filtra por medios específicos.
+    *   `all`: Todos los 30+ medios peruanos (Por defecto).
+    *   Nombres específicos: `elcomercio`, `larepublica`, `rpp`, `gestion`, `trome`, `ojo`, `publimetro`, `americatv`, `canaln`, `willax`, `ojopublico`, `idl`, etc.
+*   `--sources`: Fuentes de recolección.
+    *   `gdelt`: (Por defecto) La más completa para histórico.
+    *   `google`, `rss`: Útiles para noticias de última hora.
 
-Ejecuta el pipeline completo (GDELT → descarga HTML → extracción de texto → tabla) empleando los parámetros por defecto del proyecto (palabra clave "Yape" y rango 2020-03-01 a 2020-05-01).
+## Estructura de Datos (CSV)
 
+El archivo generado contiene las siguientes columnas:
+
+| Columna | Descripción |
+| :--- | :--- |
+| `title` | Titular del artículo. |
+| `newspaper` | Dominio del medio (ej. `elcomercio.pe`). |
+| `published_at` | Fecha y hora de publicación (UTC). |
+| `plain_text` | Texto completo extraído y limpio. |
+| `relevance_score` | Puntuación (0-100) indicando qué tan centrado está el artículo en la keyword. |
+| `source` | Fuente de origen (`GDELT`, `GoogleNews`, `DirectRSS`). |
+| `url` | Enlace original. |
+
+## Desarrollo
+
+Para ejecutar las pruebas:
 ```bash
-python -m news_harvester prototype
+PYTHONPATH=src pytest tests/
 ```
 
-Parámetros útiles:
-
-- `--keyword`: otra palabra clave.
-- `--from` / `--to`: fechas específicas (inclusive) en formato ISO.
-- `--format`: `csv` (por defecto) o `parquet`.
-- `--output`: ruta de archivo destino si no deseas la predeterminada en `data/`.
-- `--skip-html`: salta la descarga de HTML (solo extrae metadatos).
-
-> Nota: GDELT espera palabras clave de al menos 3 caracteres y códigos de país de dos letras (`PE`). Si la API devuelve advertencias, el comando las registrará y continuará con los artículos válidos.
-
-### Estructura del dataset generado
-
-Cada registro se serializa con los campos:
-
-- `title`: titular de la noticia.
-- `newspaper`: dominio del medio (`elcomercio.pe`, etc.).
-- `url`: enlace canónico del artículo.
-- `published_at`: fecha/hora (UTC) inferida de publicación.
-- `plain_text`: contenido textual limpio.
-- `keyword`: término utilizado en la búsqueda.
-El comando de validación inicial generó `data/yape_20200301_20200501.csv` con 17 registros.
-## Variables de entorno
-
-Crea un archivo `.env` en la raíz del proyecto para almacenar credenciales o claves API. Ejemplo:
-
+Para verificar estilo de código:
+```bash
+ruff check .
 ```
-NEWS_API_KEY="tu_clave"
-```
-
-Carga estas variables en tu código con `python-dotenv`.
-
-## Próximos pasos sugeridos
-
-- Añadir parseadores específicos por dominio para extraer título, resumen y cuerpo sin depender del HTML completo.
-- Registrar métricas de scraping y detectar duplicados para controlar la calidad del dataset.
-- Incorporar almacenamiento (por ejemplo, SQLite o PostgreSQL) y un modelo de datos para artículos normalizados.
-- Automatizar ejecuciones periódicas con `APScheduler` o flujos tipo Airflow/Prefect.
-- Crear pipelines de evaluación de calidad (tests adicionales, linters, CI). 

@@ -11,7 +11,10 @@ import orjson
 from dotenv import load_dotenv
 
 from .collectors import Article, GDELTError, download_article_bodies, fetch_articles
+from .collectors.google import fetch_google_news
+from .collectors.rss import fetch_from_rss
 from .config import Settings
+from .domains import PERUVIAN_MEDIA
 from .models import NewsRecord
 from .processing.records import build_news_record
 from .storage import write_records
@@ -37,7 +40,9 @@ def _build_parser() -> argparse.ArgumentParser:
         "fetch",
         help="Descarga metadatos (y opcionalmente HTML) desde la API GDELT",
     )
-    fetch_parser.add_argument("--keyword", required=True, help="Palabra clave a buscar.")
+    fetch_parser.add_argument(
+        "--keyword", required=True, help="Palabra clave a buscar."
+    )
     fetch_parser.add_argument(
         "--from",
         dest="date_from",
@@ -116,6 +121,19 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="No descargar los cuerpos HTML y generar el texto vacío (útil para pruebas rápidas).",
     )
+    prototype_parser.add_argument(
+        "--sources",
+        nargs="+",
+        default=["gdelt"],
+        choices=["gdelt", "google", "rss"],
+        help="Fuentes a utilizar (por defecto: gdelt)",
+    )
+    prototype_parser.add_argument(
+        "--media",
+        nargs="+",
+        default=["all"],
+        help="Medios a filtrar por nombre (ej: elcomercio rpp). 'all' incluye todos.",
+    )
     return parser
 
 
@@ -126,9 +144,13 @@ def _load_environment() -> Settings:
     return Settings()
 
 
-def _date_range_to_datetimes(date_from: dt.date, date_to: dt.date) -> tuple[dt.datetime, dt.datetime]:
+def _date_range_to_datetimes(
+    date_from: dt.date, date_to: dt.date
+) -> tuple[dt.datetime, dt.datetime]:
     start_dt = dt.datetime.combine(date_from, dt.time.min, tzinfo=dt.timezone.utc)
-    end_dt = dt.datetime.combine(date_to, dt.time(hour=23, minute=59, second=59), tzinfo=dt.timezone.utc)
+    end_dt = dt.datetime.combine(
+        date_to, dt.time(hour=23, minute=59, second=59), tzinfo=dt.timezone.utc
+    )
     return start_dt, end_dt
 
 
@@ -184,9 +206,7 @@ def main() -> None:
 
     _save_articles(articles, output_path)
 
-    print(
-        f"Se guardaron {len(articles)} artículos en {output_path}."
-    )
+    print(f"Se guardaron {len(articles)} artículos en {output_path}.")
 
 
 def run_prototype(args: argparse.Namespace, settings: Settings) -> None:
@@ -195,20 +215,112 @@ def run_prototype(args: argparse.Namespace, settings: Settings) -> None:
     date_to = args.date_to or settings.prototype_end
 
     start_dt, end_dt = _date_range_to_datetimes(date_from, date_to)
+    articles: list[Article] = []
 
-    try:
-        articles = fetch_articles(
-            keyword=keyword,
-            start=start_dt,
-            end=end_dt,
-            source_country=settings.source_country,
-            domains=settings.target_domains,
-            max_records=settings.gdelt_max_records,
-            timeout=settings.request_timeout,
-        )
-    except GDELTError as exc:
-        print(f"Error al consultar GDELT: {exc}")
-        return
+    selected_sources = args.sources
+    print(f"Fuentes seleccionadas: {selected_sources}")
+
+    # Resolver dominios
+    target_domains = []
+    if "all" in args.media:
+        target_domains = settings.target_domains
+        print(f"Medios seleccionados: TODOS ({len(target_domains)} dominios)")
+    else:
+        for media_name in args.media:
+            if media_name in PERUVIAN_MEDIA:
+                target_domains.append(PERUVIAN_MEDIA[media_name])
+            else:
+                print(f"Advertencia: Medio '{media_name}' no reconocido.")
+        if not target_domains:
+            print(
+                "Advertencia: No se seleccionaron dominios válidos. Usando todos por defecto."
+            )
+            target_domains = settings.target_domains
+        else:
+            print(f"Medios seleccionados: {args.media} ({target_domains})")
+
+    # 1. GDELT
+    if "gdelt" in selected_sources:
+        try:
+            print(f"Consultando GDELT para '{keyword}' entre {start_dt} y {end_dt}...")
+            gdelt_articles = fetch_articles(
+                keyword=keyword,
+                start=start_dt,
+                end=end_dt,
+                source_country=settings.source_country,
+                domains=target_domains,  # Filter by selected domains
+                max_records=settings.gdelt_max_records,
+                timeout=settings.request_timeout,
+            )
+            # Marcar fuente GDELT
+            for a in gdelt_articles:
+                a.source_api = "GDELT"
+            articles.extend(gdelt_articles)
+            print(f"  - GDELT: {len(gdelt_articles)} artículos")
+        except GDELTError as exc:
+            print(f"Error al consultar GDELT: {exc}")
+
+    # 2. Google News
+    if "google" in selected_sources:
+        try:
+            print(f"Consultando Google News para '{keyword}'...")
+            google_articles = fetch_google_news(
+                keyword=keyword,
+                start=start_dt,
+                end=end_dt,
+                source_country=settings.source_country,
+                timeout=settings.request_timeout,
+            )
+            # Marcar fuente Google
+            for a in google_articles:
+                a.source_api = "GoogleNews"
+
+            # Combinar y deduplicar por URL
+            existing_urls = {a.url for a in articles}
+            new_count = 0
+            for a in google_articles:
+                if a.url not in existing_urls:
+                    articles.append(a)
+                    existing_urls.add(a.url)
+                    new_count += 1
+            print(
+                f"  - Google News: {len(google_articles)} artículos ({new_count} nuevos)"
+            )
+
+        except Exception as exc:
+            print(f"Error al consultar Google News: {exc}")
+
+    # 3. RSS Directo
+    if "rss" in selected_sources:
+        try:
+            print(f"Consultando RSS directos para '{keyword}'...")
+            rss_articles = fetch_from_rss(
+                feeds=settings.PERUVIAN_RSS_FEEDS,
+                keyword=keyword,
+                start=start_dt,
+                end=end_dt,
+                timeout=settings.request_timeout,
+            )
+            # Marcar fuente RSS
+            for a in rss_articles:
+                a.source_api = "DirectRSS"
+
+            # Combinar y deduplicar por URL
+            existing_urls = {a.url for a in articles}
+            new_count = 0
+            for a in rss_articles:
+                if a.url not in existing_urls:
+                    articles.append(a)
+                    existing_urls.add(a.url)
+                    new_count += 1
+            print(
+                f"  - RSS Directo: {len(rss_articles)} artículos ({new_count} nuevos)"
+            )
+
+        except Exception as exc:
+            print(f"Error al consultar RSS: {exc}")
+
+    print(f"Total artículos únicos encontrados: {len(articles)}")
 
     if not args.skip_html and articles:
         download_article_bodies(
@@ -233,12 +345,16 @@ def run_prototype(args: argparse.Namespace, settings: Settings) -> None:
     if args.output is not None:
         output_path = args.output
     else:
-        output_suffix = f"{keyword.lower()}_{date_from:%Y%m%d}_{date_to:%Y%m%d}.{args.format}"
+        output_suffix = (
+            f"{keyword.lower()}_{date_from:%Y%m%d}_{date_to:%Y%m%d}.{args.format}"
+        )
         output_path = settings.output_dir / output_suffix
 
     write_records(records, output_path=output_path, format=args.format)
 
-    message = f"Prototipo completado: {len(records)} registros almacenados en {output_path}."
+    message = (
+        f"Prototipo completado: {len(records)} registros almacenados en {output_path}."
+    )
     if skipped_without_content:
         message += f" Se omitieron {skipped_without_content} artículos sin párrafos relevantes."
     print(message)

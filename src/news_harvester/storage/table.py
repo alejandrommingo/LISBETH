@@ -31,7 +31,16 @@ def write_records(
 
     if df.empty:
         # Crear archivo vacío con cabeceras
-        empty_df = pd.DataFrame(columns=["title", "newspaper", "url", "published_at", "plain_text", "keyword"])
+        empty_df = pd.DataFrame(
+            columns=[
+                "title",
+                "newspaper",
+                "url",
+                "published_at",
+                "plain_text",
+                "keyword",
+            ]
+        )
         if format == "csv":
             empty_df.to_csv(output_path, index=False, **pandas_kwargs)
         else:

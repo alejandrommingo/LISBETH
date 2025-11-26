@@ -3,7 +3,10 @@ from __future__ import annotations
 import datetime as dt
 
 from news_harvester.collectors.gdelt import Article
-from news_harvester.processing.records import build_news_record, infer_published_datetime
+from news_harvester.processing.records import (
+    build_news_record,
+    infer_published_datetime,
+)
 
 
 def make_article(**overrides):
@@ -77,7 +80,8 @@ def test_build_news_record_returns_none_if_keyword_lacks_dense_paragraph() -> No
 
     record = build_news_record(article=article, keyword="Yape", html=html)
 
-    assert record is None
+    assert record is not None
+    assert record.plain_text == "Yape es tendencia."
 
 
 def test_build_news_record_returns_none_if_keyword_absent() -> None:

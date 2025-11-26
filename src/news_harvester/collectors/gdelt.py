@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import dataclasses
 import datetime as dt
 import json
 import logging
@@ -11,14 +10,24 @@ from dataclasses import dataclass
 from typing import Iterable, List, Sequence
 
 import httpx
+from fake_useragent import UserAgent
+from tenacity import (
+    before_sleep_log,
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 GDELT_BASE_URL = "https://api.gdeltproject.org/api/v2/doc/doc"
 GDELT_SEEN_FORMAT = "%Y%m%dT%H%M%SZ"
 GDELT_COMPACT_DATETIME_FORMAT = "%Y%m%d%H%M%S"
 GDELT_COMPACT_DATE_FORMAT = "%Y%m%d"
-DEFAULT_USER_AGENT = "lisbeth-news-harvester/0.1.0 (https://github.com/)"
+GDELT_COMPACT_DATE_FORMAT = "%Y%m%d"
+# DEFAULT_USER_AGENT eliminado en favor de fake-useragent
 
 logger = logging.getLogger(__name__)
+ua = UserAgent()
 
 
 class GDELTError(RuntimeError):
@@ -38,7 +47,9 @@ class Article:
     source_country: str | None = None
     publish_datetime: dt.datetime | None = None
     publish_date: dt.date | None = None
+    publish_date: dt.date | None = None
     raw_html: str | None = None
+    source_api: str = "GDELT"
 
     def to_dict(self) -> dict[str, str | None]:
         return {
@@ -52,8 +63,11 @@ class Article:
             "publish_datetime": self.publish_datetime.isoformat()
             if self.publish_datetime
             else None,
-            "publish_date": self.publish_date.isoformat() if self.publish_date else None,
+            "publish_date": self.publish_date.isoformat()
+            if self.publish_date
+            else None,
             "raw_html": self.raw_html,
+            "source_api": self.source_api,
         }
 
     @classmethod
@@ -68,7 +82,9 @@ class Article:
         publish_datetime_raw = payload.get("publishdatetime")
         publish_datetime = None
         if publish_datetime_raw:
-            publish_datetime = _parse_datetime(publish_datetime_raw, suppress_errors=True)
+            publish_datetime = _parse_datetime(
+                publish_datetime_raw, suppress_errors=True
+            )
 
         publish_date_raw = payload.get("publishdate")
         publish_date = None
@@ -130,10 +146,13 @@ def _parse_date(value: str) -> dt.date:
     raise ValueError(f"Formato de fecha no soportado: {value!r}")
 
 
-def _ensure_client(client: httpx.Client | None, timeout: float) -> tuple[httpx.Client, bool]:
+def _ensure_client(
+    client: httpx.Client | None, timeout: float
+) -> tuple[httpx.Client, bool]:
     if client is not None:
         return client, False
-    return httpx.Client(timeout=timeout, headers={"User-Agent": DEFAULT_USER_AGENT}, follow_redirects=True), True
+    # No fijamos User-Agent aquí para poder rotarlo en cada petición
+    return httpx.Client(timeout=timeout, follow_redirects=True), True
 
 
 def fetch_articles(
@@ -203,8 +222,7 @@ def fetch_articles(
             except json.JSONDecodeError as exc:
                 snippet = response.text[:200]
                 raise GDELTError(
-                    "Respuesta no válida de GDELT (no es JSON). Fragmento: "
-                    f"{snippet!r}"
+                    f"Respuesta no válida de GDELT (no es JSON). Fragmento: {snippet!r}"
                 ) from exc
             batch = payload.get("articles", [])
             if not isinstance(batch, list):  # pragma: no cover - defensa
@@ -250,18 +268,84 @@ def download_article_bodies(
 
     client_obj, created = _ensure_client(client, timeout)
 
+    # Configuración de reintentos para solicitudes individuales
+    retry_decorator = retry(
+        reraise=True,
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        retry=retry_if_exception_type(
+            (
+                httpx.ConnectError,
+                httpx.ReadTimeout,
+                httpx.ConnectTimeout,
+                httpx.RemoteProtocolError,
+            )
+        ),
+        before_sleep=before_sleep_log(logger, logging.WARNING),
+    )
+
     try:
         for article in articles:
             try:
-                response = client_obj.get(article.url)
-                response.raise_for_status()
-            except httpx.HTTPError:
-                article.raw_html = None
-            else:
-                article.raw_html = response.text
+                # Función interna para permitir decoración con tenacity
+                @retry_decorator
+                def _fetch_one(url: str) -> str:
+                    headers = {
+                        "User-Agent": ua.random,
+                        "Referer": "https://www.google.com/",
+                    }
+                    resp = client_obj.get(url, headers=headers)
+                    resp.raise_for_status()
+                    return resp.text
 
-            if delay_seconds > 0:
-                time.sleep(delay_seconds)
+                article.raw_html = _fetch_one(article.url)
+
+            except httpx.HTTPStatusError as exc:
+                logger.error(
+                    "Error HTTP %s al descargar %s. Intentando Wayback Machine...",
+                    exc.response.status_code,
+                    article.url,
+                )
+                article.raw_html = _try_wayback_machine(client_obj, article)
+            except Exception as exc:
+                logger.error(
+                    "Error al descargar %s: %s. Intentando Wayback Machine...",
+                    article.url,
+                    exc,
+                )
+                article.raw_html = _try_wayback_machine(client_obj, article)
+            else:
+                if delay_seconds > 0:
+                    time.sleep(delay_seconds)
     finally:
         if created:
             client_obj.close()
+
+
+def _try_wayback_machine(client: httpx.Client, article: Article) -> str | None:
+    """Intenta recuperar una instantánea de Wayback Machine cercana a la fecha de publicación."""
+    try:
+        # Formato timestamp para API: YYYYMMDD
+        timestamp = article.seen_date.strftime("%Y%m%d")
+        api_url = f"http://archive.org/wayback/available?url={article.url}&timestamp={timestamp}"
+
+        resp = client.get(api_url, timeout=10.0)
+        data = resp.json()
+
+        snapshots = data.get("archived_snapshots", {})
+        closest = snapshots.get("closest")
+
+        if closest and closest.get("available"):
+            snapshot_url = closest.get("url")
+            logger.info("Instantánea encontrada en Wayback Machine: %s", snapshot_url)
+            # Descargar la instantánea
+            wb_resp = client.get(snapshot_url, timeout=30.0)
+            wb_resp.raise_for_status()
+            return wb_resp.text
+
+    except Exception as exc:
+        logger.warning(
+            "Fallo al consultar Wayback Machine para %s: %s", article.url, exc
+        )
+
+    return None

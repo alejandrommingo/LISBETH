@@ -7,6 +7,7 @@ import datetime as dt
 from .text import extract_plain_text
 from ..collectors.gdelt import Article
 from ..models import NewsRecord
+from .relevance import calculate_relevance_score
 
 CONTENT_MIN_PARAGRAPH_CHARS = 90
 
@@ -49,18 +50,29 @@ def build_news_record(
         keyword=keyword,
         min_paragraph_chars=CONTENT_MIN_PARAGRAPH_CHARS,
         require_keyword=bool(keyword),
+        strict_mode=False,
     )
 
-    if not plain_text.strip():
+    if not plain_text:
         return None
 
-    published_at = infer_published_datetime(article)
+    relevance = (
+        calculate_relevance_score(plain_text, article.title, keyword)
+        if keyword
+        else 0.0
+    )
+
+    # Determinar fuente (si no está explícita en el artículo, asumimos GDELT por defecto)
+    # En el futuro, Article podría tener un campo 'source_api'
+    source = getattr(article, "source_api", "GDELT")
 
     return NewsRecord(
-        title=article.title or "",
-        newspaper=article.domain or article.source_country or "desconocido",
+        title=article.title,
+        newspaper=article.domain,
         url=article.url,
-        published_at=published_at,
+        published_at=article.publish_datetime or article.seen_datetime,
         plain_text=plain_text,
         keyword=keyword,
+        relevance_score=relevance,
+        source=source,
     )

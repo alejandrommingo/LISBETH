@@ -16,9 +16,17 @@ class NewsRecord(BaseModel):
     title: str = Field(..., description="Titular de la noticia")
     newspaper: str = Field(..., description="Dominio o nombre del periódico de origen")
     url: AnyHttpUrl = Field(..., description="URL canónica del artículo")
-    published_at: dt.datetime = Field(..., description="Fecha y hora exactas de publicación (tz-aware)")
+    published_at: dt.datetime = Field(
+        ..., description="Fecha y hora exactas de publicación (tz-aware)"
+    )
     plain_text: str = Field(..., description="Contenido plano del artículo")
-    keyword: str | None = Field(None, description="Palabra clave utilizada en la búsqueda")
+    keyword: str | None = Field(
+        None, description="Palabra clave utilizada en la búsqueda"
+    )
+    relevance_score: float = Field(0.0, description="Puntuación de relevancia (0-100)")
+    source: str = Field(
+        "GDELT", description="Fuente de origen (GDELT, GoogleNews, etc.)"
+    )
 
     @property
     def published_date(self) -> dt.date:

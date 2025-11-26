@@ -67,7 +67,9 @@ def test_fetch_articles_filters_domains(mock_client: httpx.Client) -> None:
     assert article.title.startswith("Yape")
     assert article.seen_date == dt.date(2020, 3, 5)
     assert article.publish_date == dt.date(2020, 3, 5)
-    assert article.publish_datetime == dt.datetime(2020, 3, 5, 11, 0, tzinfo=dt.timezone.utc)
+    assert article.publish_datetime == dt.datetime(
+        2020, 3, 5, 11, 0, tzinfo=dt.timezone.utc
+    )
 
 
 def test_download_article_bodies_assigns_html() -> None:
@@ -122,7 +124,9 @@ def test_fetch_articles_raises_on_non_json_response() -> None:
         )
 
 
-def test_fetch_articles_skips_invalid_articles(caplog: pytest.LogCaptureFixture) -> None:
+def test_fetch_articles_skips_invalid_articles(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     payload = {
         "articles": [
             {
@@ -157,4 +161,6 @@ def test_fetch_articles_skips_invalid_articles(caplog: pytest.LogCaptureFixture)
         )
 
     assert len(articles) == 1
-    assert any("No fue posible parsear un artículo" in message for message in caplog.messages)
+    assert any(
+        "No fue posible parsear un artículo" in message for message in caplog.messages
+    )
