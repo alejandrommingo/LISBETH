@@ -146,55 +146,59 @@ def _parse_date(value: str) -> dt.date:
     raise ValueError(f"Formato de fecha no soportado: {value!r}")
 
 
+
+from curl_cffi import requests as cffi_requests
+
 def _ensure_client(
-    client: httpx.Client | None, timeout: float
-) -> tuple[httpx.Client, bool]:
+    client: cffi_requests.Session | None, timeout: float
+) -> tuple[cffi_requests.Session, bool]:
     if client is not None:
         return client, False
-    # No fijamos User-Agent aquí para poder rotarlo en cada petición
-    return httpx.Client(timeout=timeout, follow_redirects=True), True
+    # Impersonate Chrome to bypass WAFs
+    return cffi_requests.Session(impersonate="chrome110", timeout=timeout), True
 
 
 def fetch_articles(
     *,
-    keyword: str,
+    keyword: str | list[str],
     start: dt.datetime,
     end: dt.datetime,
     source_country: str | None = "PER",
     domains: Sequence[str] | None = None,
     max_records: int = 250,
     timeout: float = 30.0,
-    client: httpx.Client | None = None,
+    client: cffi_requests.Session | None = None,
 ) -> List[Article]:
-    """Consulta la API de GDELT y devuelve artículos filtrados por dominio.
-
-    Parámetros
-    ----------
-    keyword:
-        Palabra o frase a buscar (se encapsula entre comillas automáticamente).
-    start / end:
-        Intervalo temporal en UTC.
-    domains:
-        Lista de dominios permitidos; si es ``None`` no se filtra.
-    max_records:
-        Límite (<= 250) por página; GDELT permite usar ``offset`` para paginar.
-    timeout:
-        Tiempo máximo de espera por petición en segundos.
-    client:
-        Cliente HTTP reutilizable para facilitar pruebas.
-    """
-
+    # ... (rest of docstring) ...
+    
+    # ... (validation logic same as before) ...
     if start >= end:
         raise ValueError("`start` debe ser anterior a `end`.")
     if max_records <= 0 or max_records > 250:
         raise ValueError("`max_records` debe estar en el rango 1-250.")
 
     domains_set: set[str] | None = {d.lower() for d in domains} if domains else None
-    keyword_term = keyword.strip()
-    if " " in keyword_term:
-        query_parts = [f'"{keyword_term}"']
+    
+    # Construcción de la query (same as before)
+    if isinstance(keyword, str):
+        keywords = [keyword]
     else:
-        query_parts = [keyword_term]
+        keywords = keyword
+
+    cleaned_keywords = []
+    for k in keywords:
+        k = k.strip()
+        if " " in k and not k.startswith('"'):
+            cleaned_keywords.append(f'"{k}"')
+        else:
+            cleaned_keywords.append(k)
+    
+    if len(cleaned_keywords) > 1:
+        keyword_part = f"({' OR '.join(cleaned_keywords)})"
+    else:
+        keyword_part = cleaned_keywords[0]
+
+    query_parts = [keyword_part]
     if source_country:
         query_parts.append(f"sourceCountry:{source_country.upper()}")
     query = " ".join(query_parts)
@@ -215,6 +219,7 @@ def fetch_articles(
     try:
         while True:
             req_params = params | ({"offset": str(offset)} if offset else {})
+            # curl_cffi uses params same as requests
             response = client_obj.get(GDELT_BASE_URL, params=req_params)
             response.raise_for_status()
             try:
@@ -225,17 +230,17 @@ def fetch_articles(
                     f"Respuesta no válida de GDELT (no es JSON). Fragmento: {snippet!r}"
                 ) from exc
             batch = payload.get("articles", [])
-            if not isinstance(batch, list):  # pragma: no cover - defensa
+            if not isinstance(batch, list):
                 raise GDELTError("Estructura inesperada en la respuesta de GDELT")
             if not batch:
                 break
 
             for item in batch:
-                if not isinstance(item, dict):  # pragma: no cover
+                if not isinstance(item, dict):
                     continue
                 try:
                     article = Article.from_payload(item)
-                except Exception as exc:  # pragma: no cover
+                except Exception as exc:
                     logger.warning("No fue posible parsear un artículo: %s", exc)
                     continue
 
@@ -258,7 +263,7 @@ def download_article_bodies(
     *,
     delay_seconds: float = 1.0,
     timeout: float = 20.0,
-    client: httpx.Client | None = None,
+    client: cffi_requests.Session | None = None,
 ) -> None:
     """Descarga el HTML de cada artículo y lo adjunta en ``raw_html``.
 
@@ -269,18 +274,12 @@ def download_article_bodies(
     client_obj, created = _ensure_client(client, timeout)
 
     # Configuración de reintentos para solicitudes individuales
+    # curl_cffi raises requests.exceptions
     retry_decorator = retry(
         reraise=True,
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=2, max=10),
-        retry=retry_if_exception_type(
-            (
-                httpx.ConnectError,
-                httpx.ReadTimeout,
-                httpx.ConnectTimeout,
-                httpx.RemoteProtocolError,
-            )
-        ),
+        retry=retry_if_exception_type(Exception), # Catch-all for simplicity with cffi
         before_sleep=before_sleep_log(logger, logging.WARNING),
     )
 
@@ -290,29 +289,21 @@ def download_article_bodies(
                 # Función interna para permitir decoración con tenacity
                 @retry_decorator
                 def _fetch_one(url: str) -> str:
-                    headers = {
-                        "User-Agent": ua.random,
-                        "Referer": "https://www.google.com/",
-                    }
-                    resp = client_obj.get(url, headers=headers)
+                    # curl_cffi handles headers/impersonation in Session
+                    resp = client_obj.get(url)
                     resp.raise_for_status()
                     return resp.text
 
                 article.raw_html = _fetch_one(article.url)
 
-            except httpx.HTTPStatusError as exc:
-                logger.error(
-                    "Error HTTP %s al descargar %s. Intentando Wayback Machine...",
-                    exc.response.status_code,
-                    article.url,
-                )
-                article.raw_html = _try_wayback_machine(client_obj, article)
             except Exception as exc:
                 logger.error(
                     "Error al descargar %s: %s. Intentando Wayback Machine...",
                     article.url,
                     exc,
                 )
+                # Wayback fallback might need standard httpx or curl_cffi too
+                # For simplicity, let's use the same client
                 article.raw_html = _try_wayback_machine(client_obj, article)
             else:
                 if delay_seconds > 0:
@@ -322,16 +313,22 @@ def download_article_bodies(
             client_obj.close()
 
 
-def _try_wayback_machine(client: httpx.Client, article: Article) -> str | None:
+def _try_wayback_machine(client: cffi_requests.Session, article: Article) -> str | None:
     """Intenta recuperar una instantánea de Wayback Machine cercana a la fecha de publicación."""
     try:
         # Formato timestamp para API: YYYYMMDD
         timestamp = article.seen_date.strftime("%Y%m%d")
         api_url = f"http://archive.org/wayback/available?url={article.url}&timestamp={timestamp}"
-
+        
+        logger.info("Consultando Wayback API: %s", api_url)
+        # curl_cffi session
         resp = client.get(api_url, timeout=10.0)
+        
+        if resp.status_code != 200:
+            logger.warning("Wayback API devolvió status %s", resp.status_code)
+            return None
+            
         data = resp.json()
-
         snapshots = data.get("archived_snapshots", {})
         closest = snapshots.get("closest")
 
@@ -342,6 +339,8 @@ def _try_wayback_machine(client: httpx.Client, article: Article) -> str | None:
             wb_resp = client.get(snapshot_url, timeout=30.0)
             wb_resp.raise_for_status()
             return wb_resp.text
+        else:
+            logger.warning("Wayback Machine no tiene instantáneas para %s", article.url)
 
     except Exception as exc:
         logger.warning(

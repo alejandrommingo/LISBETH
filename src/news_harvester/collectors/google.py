@@ -19,7 +19,7 @@ ua = UserAgent()
 
 def fetch_google_news(
     *,
-    keyword: str,
+    keyword: str | list[str],
     start: dt.datetime,
     end: dt.datetime,
     source_country: str | None = "PE",
@@ -35,7 +35,19 @@ def fetch_google_news(
     # Construir URL del feed
     # ceid: country, gl: geolocation, hl: host language
     base_url = "https://news.google.com/rss/search"
-    query = f"{keyword} after:{start.strftime('%Y-%m-%d')} before:{end.strftime('%Y-%m-%d')}"
+    
+    if isinstance(keyword, str):
+        keywords = [keyword]
+    else:
+        keywords = keyword
+        
+    # Google News soporta OR
+    if len(keywords) > 1:
+        keyword_part = f"({' OR '.join(keywords)})"
+    else:
+        keyword_part = keywords[0]
+
+    query = f"{keyword_part} after:{start.strftime('%Y-%m-%d')} before:{end.strftime('%Y-%m-%d')}"
     if source_country:
         query += " when:1y"  # Intento de ampliar rango, aunque RSS es limitado
 

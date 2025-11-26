@@ -5,7 +5,7 @@ from __future__ import annotations
 import unicodedata
 
 
-def calculate_relevance_score(text: str, title: str, keyword: str) -> float:
+def calculate_relevance_score(text: str, title: str, keyword: str | list[str]) -> float:
     """Calcula una puntuación de relevancia (0-100) para un artículo.
 
     Factores:
@@ -16,7 +16,7 @@ def calculate_relevance_score(text: str, title: str, keyword: str) -> float:
     Args:
         text: Contenido completo del artículo.
         title: Titular del artículo.
-        keyword: Palabra clave a buscar.
+        keyword: Palabra(s) clave a buscar. Puede ser str o lista de str.
 
     Returns:
         float: Puntuación entre 0.0 y 100.0.
@@ -24,22 +24,27 @@ def calculate_relevance_score(text: str, title: str, keyword: str) -> float:
     if not keyword:
         return 0.0
 
+    keywords = [keyword] if isinstance(keyword, str) else keyword
+    if not keywords:
+        return 0.0
+
     score = 0.0
-    keyword_normalized = _normalize(keyword)
+    keywords_normalized = [_normalize(k) for k in keywords]
     title_normalized = _normalize(title)
     text_normalized = _normalize(text)
 
-    # 1. Presencia en el título
-    if keyword_normalized in title_normalized:
+    # 1. Presencia en el título (basta con que aparezca una)
+    if any(k in title_normalized for k in keywords_normalized):
         score += 40.0
 
     # 2. Presencia en el lead (primeros 200 caracteres aprox)
     lead = text_normalized[:200]
-    if keyword_normalized in lead:
+    if any(k in lead for k in keywords_normalized):
         score += 30.0
 
-    # 3. Frecuencia en el cuerpo
-    count = text_normalized.count(keyword_normalized)
+    # 3. Frecuencia en el cuerpo (suma de todas las keywords)
+    count = sum(text_normalized.count(k) for k in keywords_normalized)
+    
     # 10 puntos por cada aparición adicional (descontando la del lead si ya se contó)
     # Simplificación: contamos todas y topeamos en 30
     frequency_score = min(30.0, count * 10.0)

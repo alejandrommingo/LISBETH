@@ -35,7 +35,7 @@ def infer_published_datetime(article: Article) -> dt.datetime:
 def build_news_record(
     *,
     article: Article,
-    keyword: str | None = None,
+    keyword: str | list[str] | None = None,
     html: str | None = None,
 ) -> NewsRecord | None:
     """Crea un ``NewsRecord`` usando el HTML (si está disponible).
@@ -65,6 +65,9 @@ def build_news_record(
     # Determinar fuente (si no está explícita en el artículo, asumimos GDELT por defecto)
     # En el futuro, Article podría tener un campo 'source_api'
     source = getattr(article, "source_api", "GDELT")
+    
+    # Si keyword es una lista, la convertimos a string para el registro
+    keyword_str = ", ".join(keyword) if isinstance(keyword, list) else keyword
 
     return NewsRecord(
         title=article.title,
@@ -72,7 +75,7 @@ def build_news_record(
         url=article.url,
         published_at=article.publish_datetime or article.seen_datetime,
         plain_text=plain_text,
-        keyword=keyword,
+        keyword=keyword_str,
         relevance_score=relevance,
         source=source,
     )

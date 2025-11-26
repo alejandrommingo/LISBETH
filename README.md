@@ -9,6 +9,10 @@ El sistema se centra en **GDELT** como fuente primaria masiva, complementada por
 *   **Fuentes Masivas**:
     *   **GDELT**: Cobertura histórica con más de 30 medios peruanos (El Comercio, La República, RPP, Ojo Público, etc.).
     *   **Google News & RSS**: Fuentes complementarias para noticias recientes.
+*   **Recolección Exhaustiva e Inteligente**:
+    *   **Multi-Keyword Support**: Permite buscar múltiples términos simultáneamente (ej. "Yape", "Yapear", "Yapeo") para capturar todas las variaciones de una marca o tema.
+    *   **Daily Chunking**: Divide automáticamente las consultas históricas en intervalos diarios. Esto supera las limitaciones de la API de GDELT (que solo devuelve 250 resultados por query), asegurando que no se pierda ningún artículo en periodos largos.
+    *   **WAF Bypass**: Integración con `curl_cffi` para simular huellas TLS de navegadores reales (Chrome 110+), permitiendo descargar contenido de sitios protegidos o con bloqueos anti-bot (ej. La República, América TV).
 *   **Calidad de Datos**:
     *   **Extracción Limpia**: Uso de `trafilatura` para obtener texto plano sin ruido de navegación.
     *   **Puntuación de Relevancia**: Algoritmo que califica (0-100) cada artículo basándose en la presencia de la palabra clave.
@@ -47,9 +51,9 @@ El caso de uso principal es descargar noticias históricas sobre un tema especí
 
 ```bash
 PYTHONPATH=src python -m news_harvester prototype \
-    --keyword "Yape" \
-    --from 2020-03-01 \
-    --to 2020-05-01 \
+    --keyword "Yape" "Yapear" "Yapeo" \
+    --from 2020-01-01 \
+    --to 2021-01-01 \
     --media all \
     --output data/yape_dataset.csv
 ```

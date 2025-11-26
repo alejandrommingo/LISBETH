@@ -162,7 +162,7 @@ def _is_short_navigation_item(line: str, normalized: str) -> bool:
 def extract_plain_text(
     html: str,
     *,
-    keyword: str | None = None,
+    keyword: str | list[str] | None = None,
     min_paragraph_chars: int | None = None,
     require_keyword: bool = False,
     strict_mode: bool = True,
@@ -175,6 +175,9 @@ def extract_plain_text(
 
     if not html or not html.strip():
         return ""
+
+    keywords = [keyword] if isinstance(keyword, str) else (keyword or [])
+    keywords_cf = [k.casefold() for k in keywords] if keywords else []
 
     # Intento principal con trafilatura
     try:
@@ -189,12 +192,11 @@ def extract_plain_text(
             # Trafilatura devuelve texto limpio, pero aplicamos normalización básica
             normalized = unicodedata.normalize("NFC", traf_text)
             # Verificación de keyword si es requerida
-            if require_keyword and keyword:
-                if keyword.casefold() not in normalized.casefold():
-                    # Si trafilatura extrajo texto pero no tiene la keyword,
-                    # podría ser un falso positivo (menú, etc) o que la keyword estaba en el título
-                    # y trafilatura no lo incluyó.
-                    # Damos una oportunidad al legacy si es estricto.
+            if require_keyword and keywords_cf:
+                normalized_cf = normalized.casefold()
+                if not any(k in normalized_cf for k in keywords_cf):
+                    # Si trafilatura extrajo texto pero no tiene ninguna keyword,
+                    # podría ser un falso positivo.
                     pass
                 else:
                     return normalized.strip()
@@ -274,7 +276,7 @@ def extract_plain_text(
         if min_paragraph_chars is None
         else max(0, min_paragraph_chars)
     )
-    keyword_cf = keyword.casefold() if keyword else None
+    
     filtered_paragraphs: list[str] = []
     keyword_paragraph_found = False
 
@@ -283,11 +285,9 @@ def extract_plain_text(
         if not normalized_paragraph:
             continue
 
-        contains_keyword = (
-            keyword_cf in normalized_paragraph.casefold()
-            if keyword_cf is not None
-            else False
-        )
+        contains_keyword = False
+        if keywords_cf:
+             contains_keyword = any(k in normalized_paragraph.casefold() for k in keywords_cf)
 
         if threshold > 0 and len(normalized_paragraph) < threshold:
             # En modo estricto, descartamos párrafos cortos.
@@ -301,7 +301,7 @@ def extract_plain_text(
         if contains_keyword:
             keyword_paragraph_found = True
 
-    if require_keyword and keyword_cf is not None and not keyword_paragraph_found:
+    if require_keyword and keywords_cf and not keyword_paragraph_found:
         return ""
 
     if not filtered_paragraphs:

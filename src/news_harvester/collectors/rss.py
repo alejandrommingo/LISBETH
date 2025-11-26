@@ -20,7 +20,7 @@ ua = UserAgent()
 def fetch_from_rss(
     *,
     feeds: List[str],
-    keyword: str,
+    keyword: str | list[str],
     start: dt.datetime,
     end: dt.datetime,
     timeout: float = 30.0,
@@ -29,7 +29,7 @@ def fetch_from_rss(
 
     Args:
         feeds: Lista de URLs de feeds RSS.
-        keyword: Palabra clave para filtrar (búsqueda simple en título/resumen).
+        keyword: Palabra(s) clave para filtrar (búsqueda simple en título/resumen).
         start: Fecha inicial (inclusive).
         end: Fecha final (inclusive).
         timeout: Timeout para la descarga del feed.
@@ -42,7 +42,12 @@ def fetch_from_rss(
     headers = {"User-Agent": ua.random}
 
     # Normalización básica para filtrado
-    keyword_cf = keyword.casefold()
+    if isinstance(keyword, str):
+        keywords = [keyword]
+    else:
+        keywords = keyword
+    
+    keywords_cf = [k.casefold() for k in keywords]
 
     for feed_url in feeds:
         try:
@@ -74,7 +79,7 @@ def fetch_from_rss(
 
                 content_to_check = f"{title} {summary}".casefold()
 
-                if keyword_cf not in content_to_check:
+                if not any(k in content_to_check for k in keywords_cf):
                     continue
 
                 # 3. Construcción del artículo
