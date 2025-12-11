@@ -94,14 +94,18 @@ def run_pipeline():
     drift_dates = []
     
     # Store eigenvalues for reporting/plotting variance later
-    eigen_data = []
+    eigen_data_list = []
     
     for i, s in enumerate(subspaces):
-        # Eigenvalues (s.eigenvalues are likely singular values from SVD. Need to confirm Subspace class)
-        # Assuming s.values or similar exists. If not, we might have lost them in SubspaceConstructor.
-        # Let's check Subspace class... actually Subspace obj usually has 'basis' and 'centroid'.
-        pass 
-        
+        # Collect eigenvalues
+        if s.eigenvalues is not None:
+             # Convert to list for serialization
+             ev_list = s.eigenvalues.tolist() if isinstance(s.eigenvalues, np.ndarray) else list(s.eigenvalues)
+             eigen_data_list.append(ev_list)
+        else:
+             eigen_data_list.append([])
+
+    # Shifted loop for drift
     for i in range(1, len(subspaces)):
         c_prev = subspaces[i-1].centroid
         c_curr = subspaces[i].centroid
@@ -166,6 +170,9 @@ def run_pipeline():
     # Align lengths
     if len(k_evolution) == len(results_master):
         results_master['intrinsic_dimension_k'] = k_evolution
+        
+    # Add Eigenvalues (Serialized as string to avoid schema issues with variable length lists)
+    results_master['eigenvalues'] = [str(x) for x in eigen_data_list] # Store as string representation of list
         
     output_path = os.path.join(base_dir, 'data', 'phase3_results.parquet')
     results_master.to_parquet(output_path)

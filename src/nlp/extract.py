@@ -34,18 +34,22 @@ def extract_embeddings(data_dir, output_file, keywords=None, model_name="PlanTL-
             
             for text, date, media in tqdm(zip(texts, dates, medias), total=len(texts), desc=os.path.basename(file)):
                 for word in keywords:
-                    # Extract embeddings for EACH keyword in the list
-                    embeddings = model.extract_embedding(text, word, layers=layers)
+                    # Try both original casing and lowercase to maximize recall
+                    variants = set([word, word.lower(), word.capitalize()])
                     
-                    if embeddings:
-                        for emb in embeddings:
-                            results.append({
-                                "date": date,
-                                "media": media,
-                                "keyword": word, # Track which word generated this embedding
-                                "embedding": emb.tolist(),
-                                "context": text[:200] + "..."
-                            })
+                    for variant in variants:
+                        # Extract embeddings for EACH variant
+                        embeddings = model.extract_embedding(text, variant, layers=layers)
+                        
+                        if embeddings:
+                            for emb in embeddings:
+                                results.append({
+                                    "date": date,
+                                    "media": media,
+                                    "keyword": word, # Normalize to the canonical keyword
+                                    "embedding": emb.tolist(),
+                                    "context": text[:200] + "..."
+                                })
                         
         except Exception as e:
             print(f"Error processing {file}: {e}")
