@@ -29,7 +29,5 @@ dist/
 
 # Internal files
 CONTRIBUTING.md
-PLAN_*.md
-RESEARCH_METHODOLOGY.md
-MASTER_PLAN.md
+
 data/*.csv
