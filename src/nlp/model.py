@@ -64,6 +64,25 @@ class LisbethModel:
             
         return final_embeddings
 
+    def get_static_embedding(self, word):
+        """
+        Extracts the 'static' embedding (Layer 0) for a word in isolation.
+        Used for the 'Baseline' component of the Hybrid Anchor Strategy.
+        """
+        inputs = self.tokenizer(word, return_tensors="pt", add_special_tokens=False).to(self.device)
+        with torch.no_grad():
+            outputs = self.model(**inputs, output_hidden_states=True)
+            
+        # Hidden state 0 is the output of the Embeddings Layer
+        # Shape: (batch, seq_len, hidden_dim)
+        layer_0 = outputs.hidden_states[0]
+        
+        # Mean pool if the word was split into multiple subwords
+        # shape: (1, seq_len, hidden_dim) -> (hidden_dim,)
+        vector = torch.mean(layer_0[0], dim=0)
+        
+        return vector.cpu().numpy()
+
 if __name__ == "__main__":
     # Test
     model = LisbethModel()
