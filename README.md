@@ -1,118 +1,116 @@
-# Lisbeth News Harvester
+# LISBETH: De la Billetera Móvil al Actor Social
+## Análisis Computacional de la Representación Mediática de Yape en el Perú
 
-**Lisbeth News Harvester** es una herramienta robusta y escalable diseñada para recolectar, procesar y estructurar noticias de medios peruanos. Su objetivo principal es facilitar el análisis de reputación y tendencias mediante la creación de corpus de texto de alta calidad.
+**TFM - Máster en Big Data y Data Science | UNED**
+* **Investigador**: Alejandro Mingo
+* **Proyecto**: `LISBETH` (Legitimacy & Identity Semantic BERT Embedding Time-series Harvester)
 
-El sistema se centra en **GDELT** como fuente primaria masiva, complementada por **Google News** y **RSS directos**, e incorpora mecanismos avanzados de filtrado, limpieza y puntuación de relevancia.
+---
 
-## Características Principales
+## 📖 Descripción del Proyecto
 
-*   **Fuentes Masivas**:
-    *   **GDELT**: Cobertura histórica con más de 30 medios peruanos (El Comercio, La República, RPP, Ojo Público, etc.).
-    *   **Google News & RSS**: Fuentes complementarias para noticias recientes.
-*   **Recolección Exhaustiva e Inteligente**:
-    *   **Multi-Keyword Support**: Permite buscar múltiples términos simultáneamente (ej. "Yape", "Yapear", "Yapeo") para capturar todas las variaciones de una marca o tema.
-    *   **Daily Chunking**: Divide automáticamente las consultas históricas en intervalos diarios. Esto supera las limitaciones de la API de GDELT (que solo devuelve 250 resultados por query), asegurando que no se pierda ningún artículo en periodos largos.
-    *   **WAF Bypass**: Integración con `curl_cffi` para simular huellas TLS de navegadores reales (Chrome 110+), permitiendo descargar contenido de sitios protegidos o con bloqueos anti-bot (ej. La República, América TV).
-*   **Calidad de Datos**:
-    *   **Extracción Limpia**: Uso de `trafilatura` para obtener texto plano sin ruido de navegación.
-    *   **Puntuación de Relevancia**: Algoritmo que califica (0-100) cada artículo basándose en la presencia de la palabra clave.
-        *   **Título**: 40 puntos si aparece la keyword.
-        *   **Lead (Primeros 200 caracteres)**: 30 puntos si aparece.
-        *   **Cuerpo**: 10 puntos por cada aparición (hasta un máximo de 30 puntos).
-        *   *Nota*: El cálculo es insensible a mayúsculas y acentos.
-    *   **Resiliencia**: Sistema anti-bloqueo con rotación de User-Agents y recuperación automática de enlaces rotos (403/404) vía **Wayback Machine**.
-*   **Filtrado Avanzado**:
-    *   Selección de medios por nombre (`--media elcomercio rpp`).
-    *   Selección de fuentes de recolección (`--sources gdelt google`).
+**Lisbeth** es un sistema de investigación computacional diseñado para analizar cómo la aplicación "Yape" ha trascendido su función financiera para convertirse en un **Actor Social** en la cultura peruana. 
 
-## Instalación
+El proyecto combina **Sociología Digital** y **Procesamiento de Lenguaje Natural (NLP)** para rastrear la evolución semántica de la marca en la prensa nacional (2016-2023), identificando cómo los medios construyen y transforman su legitimidad (de la "innovación funcional" a la "solidaridad cotidiana").
 
-1.  **Clonar el repositorio**:
-    ```bash
-    git clone https://github.com/alejandrommingo/LISBETH.git
-    cd LISBETH
-    ```
+---
 
-2.  **Crear entorno virtual e instalar dependencias**:
-    ```bash
-    python3 -m venv .venv
-    source .venv/bin/activate
-    pip install -r requirements.txt
-    ```
+## 🏗️ Arquitectura y Fases del Proyecto
 
-3.  **Configuración (Opcional)**:
-    El archivo `.env` permite ajustar parámetros globales, aunque el sistema funciona con valores por defecto optimizados.
+El desarrollo se estructura en fases secuenciales que transforman datos no estructurados en conocimiento sociológico.
 
-## Uso: El "Golden Path"
+### ✅ Fase 1: Data Harvesting (Recolector de Noticias)
+*Infraestructura de recolección masiva y curación de corpus.*
 
-El caso de uso principal es descargar noticias históricas sobre un tema específico (ej. "Yape") de todos los medios peruanos disponibles.
+*   **Fuentes Híbridas**: Integración de **GDELT** (histórico profundo), **Google News** y **RSS** directos.
+*   **Cobertura**: +30 medios peruanos (El Comercio, La República, Gestión, RPP, etc.).
+*   **Capacidades Técnicas**:
+    *   **Multi-Keyword Targeting**: Rastreo simultáneo de variantes (`Yape`, `Yapear`, `Yapeo`, `Plin`).
+    *   **Daily Chunking**: Algoritmo de segmentación diaria para maximizar la recuperación de datos históricos (superando límites de API).
+    *   **WAF Bypass**: Navegación simulada para extraer contenido de sitios protegidos (Client-Side Rendering).
+    *   **Relevance Scoring**: Clasificación automática de artículos según la densidad terminológica.
 
-### Comando Prototipo
+### ✅ Fase 2: Infraestructura NLP
+*Adaptación de modelos y vectorización semántica.*
 
+*   **Core Model**: Modelos Transformadores del Estado del Arte (SOTA) en español (`PlanTL-GOB-ES/roberta-large-bne` o `xlm-roberta`).
+*   **DAPT (Domain-Adaptive Pretraining)**: Re-entrenamiento del modelo base con el corpus periodístico peruano recolectado para "enseñarle" terminología local y jerga financiera específica.
+*   **Subword Mean Pooling**: Estrategia matemática para reconstruir vectores de palabras fragmentadas por el tokenizador (ej: `['Yap', '##ear']` $\rightarrow$ `Yapear`).
+*   **Extracción de Embeddings Contextuales**: Generación de representaciones vectoriales densas para cada ocurrencia de la marca, capturando el significado exacto según su contexto de uso.
+
+### 🚧 Fase 3: Análisis de Subespacios Semánticos (En Progreso)
+*Modelado matemático de la evolución.*
+*   Análisis de Componentes Principales (PCA) y SVD sobre ventanas temporales.
+*   Detección de Deriva Semántica (*Semantic Drift*).
+*   Proyección de Marcos Teóricos (Confianza, Inclusión, Riesgo).
+
+---
+
+## 🚀 Guía de Uso Rápida
+
+### 1. Instalación
 ```bash
+git clone https://github.com/alejandrommingo/LISBETH.git
+cd LISBETH
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+### 2. Recolección de Datos (Harvester)
+Descargar noticias históricas de medios peruanos:
+```bash
+# Ejemplo: Descargar noticias de 2020 a 2021 sobre Yape
 PYTHONPATH=src python -m news_harvester prototype \
-    --keyword "Yape" "Yapear" "Yapeo" \
-    --from 2020-01-01 \
-    --to 2021-01-01 \
+    --keyword "Yape" "Yapear" \
+    --from 2020-01-01 --to 2021-01-01 \
     --media all \
-    --output data/yape_dataset.csv
+    --output data/yape_2020.csv
 ```
 
-### Fase 2: Infraestructura NLP (Nuevo)
+### 3. Pipeline NLP
+Ejecutar las herramientas de procesamiento de lenguaje:
 
-Esta fase implementa la adaptación de modelos de lenguaje (DAPT) y la extracción de embeddings contextuales.
-
-#### Entrenar Modelo (DAPT)
-Adapta un modelo base (ej. RoBERTa) al corpus de noticias recolectado:
+**A. Adaptación al Dominio (DAPT):**
+Entrenar el modelo con el texto descargado para mejorar su comprensión:
 ```bash
-python src/cli.py dapt --data data/corpus.txt --output models/roberta-adapted --epochs 3
+python src/cli.py dapt --data data/corpus.txt --output models/lisbeth-roberta-adapted --epochs 3
 ```
 
-#### Extraer Embeddings
-Genera vectores para múltiples palabras clave ("Yape", "Yapear", "Plin") usando Subword Pooling:
+**B. Extracción de Embeddings:**
+Generar la base de datos vectorial para análisis:
 ```bash
-python src/cli.py extract --data_dir data --keywords Yape Yapear Plin --output data/embeddings_yape.parquet
+python src/cli.py extract \
+    --data_dir data \
+    --keywords Yape Yapear Plin \
+    --output data/embeddings_final.parquet
 ```
 
-#### Demo Interactiva
-Ejecuta el notebook educativo para ver el pipeline paso a paso:
+### 4. Demo Educativa
+Explora el funcionamiento interno paso a paso:
 ```bash
 jupyter notebook notebooks/phase2_demo.ipynb
 ```
 
-### Argumentos Clave
+---
 
-*   `--keyword`: Término de búsqueda (ej. "Yape", "Vizcarra", "BCP").
-*   `--from` / `--to`: Rango de fechas (YYYY-MM-DD).
-*   `--media`: Filtra por medios específicos.
-    *   `all`: Todos los 30+ medios peruanos (Por defecto).
-    *   Nombres específicos: `elcomercio`, `larepublica`, `rpp`, `gestion`, `trome`, `ojo`, `publimetro`, `americatv`, `canaln`, `willax`, `ojopublico`, `idl`, etc.
-*   `--sources`: Fuentes de recolección.
-    *   `gdelt`: (Por defecto) La más completa para histórico.
-    *   `google`, `rss`: Útiles para noticias de última hora.
+## 📂 Estructura del Repositorio
 
-## Estructura de Datos (CSV)
-
-El archivo generado contiene las siguientes columnas:
-
-| Columna | Descripción |
-| :--- | :--- |
-| `title` | Titular del artículo. |
-| `newspaper` | Dominio del medio (ej. `elcomercio.pe`). |
-| `published_at` | Fecha y hora de publicación (UTC). |
-| `plain_text` | Texto completo extraído y limpio. |
-| `relevance_score` | Puntuación (0-100) indicando qué tan centrado está el artículo en la keyword. |
-| `source` | Fuente de origen (`GDELT`, `GoogleNews`, `DirectRSS`). |
-| `url` | Enlace original. |
-
-## Desarrollo
-
-Para ejecutar las pruebas:
-```bash
-PYTHONPATH=src pytest tests/
+```
+LISBETH/
+├── academic/           # Documentación teórica (TFM Intro, Metdología)
+├── data/               # Corpus crudo y Datasets (Ignorados por git)
+├── models/             # Checkpoints de modelos NLP (Ignorados por git)
+├── notebooks/          # Demos y experimentos (Jupyter)
+├── src/
+│   ├── data/           # Lógica de scraping y curación
+│   ├── nlp/            # Modelos, DAPT y Extracción
+│   ├── utils/          # Herramientas auxiliares
+│   └── cli.py          # Punto de entrada unificado
+├── tests/              # Tests unitarios y de integración
+└── README.md           # Documentación del proyecto
 ```
 
-Para verificar estilo de código:
-```bash
-ruff check .
-```
+---
+
+**Estado del Proyecto**: Fase 2 Completada (Diciembre 2025).
