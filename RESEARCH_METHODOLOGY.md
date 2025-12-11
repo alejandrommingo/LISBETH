@@ -67,6 +67,16 @@ Al trabajar con subespacios, las métricas evolucionan para medir propiedades ge
 *   **Método**: Proyectar vectores de palabras con carga afectiva clara (listas de léxico positivo/negativo) sobre el primer componente principal de $S_t$.
 *   **Interpretación**: Determina si el eje principal de discusión sobre Yape está alineado con el polo positivo o negativo.
 
+### 3.5. Estrategia de Anclaje Híbrido: Ortogonalización Simétrica (Lowdin)
+Para definir dimensiones estrictamente ortogonales sin favorecer a ninguna (como hace Gram-Schmidt con la primera), aplicamos **Ortogonalización Simétrica de Löwdin**.
+
+1.  **Matriz de Centroides**: Construimos $\mathbf{C} = [v_F, v_S, v_A]$, donde cada vector es el centroide de sus palabras ancla.
+2.  **Matriz de Superposición**: Calculamos $\mathbf{S} = \mathbf{C}^T \mathbf{C}$ (correlaciones entre dimensiones).
+3.  **Transformación Ortogonal**: Obtenemos los nuevos anclajes ortogonales $\mathbf{C}_{\perp}$ mediante:
+    $$ \mathbf{C}_{\perp} = \mathbf{C} \mathbf{S}^{-1/2} $$
+    
+**Por qué es mejor**: Esta transformación garantiza que los nuevos ejes ortogonales $\mathbf{C}_{\perp}$ son los **matemáticamente más cercanos posible** a los centroides originales teóricos $\mathbf{C}$ (mínima distancia de Frobenius), preservando el significado de las tres dimensiones equitativamente.
+
 ## 4. Ventajas de este Enfoque
 1.  **Precisión**: Al usar vectores contextuales del token, aislamos el significado de la marca del ruido del artículo.
 2.  **Estructura Latente**: PCA/SVD revela las dimensiones ocultas. Podríamos descubrir que en 2021 surge una dimensión latente que no habíamos teorizado (ej. "Yape como requisito laboral") observando los componentes.

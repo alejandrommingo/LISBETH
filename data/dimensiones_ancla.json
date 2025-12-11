@@ -1,616 +1,316 @@
 {
     "funcional": {
-        "description": "Esta lógica tiene que ver con cómo funciona Yape en la el día a día: los procesos, las modalidades de pago, los depósitos, la verificación, los sistemas y todo lo que permite que una transacción se realice correctamente.",
+        "description": "Aspectos operativos, técnicos y utilitarios de la aplicación. Velocidad, interfaz, seguridad informática y mecánica de pagos.",
         "anchors": [
             {
-                "keyword": "afiliacion",
-                "sentence": "La afiliacion a Yape toma pocos minutos desde el celular."
-            },
-            {
-                "keyword": "agencia",
-                "sentence": "Ya no es necesario ir a una agencia bancaria para usar Yape."
-            },
-            {
-                "keyword": "agente",
-                "sentence": "Puedes retirar efectivo de Yape en cualquier agente autorizado."
-            },
-            {
-                "keyword": "ahorro",
-                "sentence": "El uso de billeteras digitales fomenta el ahorro de tiempo en transacciones."
-            },
-            {
-                "keyword": "aplicacion",
-                "sentence": "Esta aplicacion permite realizar pagos inmediatos sin contacto."
-            },
-            {
-                "keyword": "app",
-                "sentence": "Descarga la app para empezar a gestionar tu dinero digitalmente."
-            },
-            {
-                "keyword": "autenticación",
-                "sentence": "La autenticación biométrica mejora la seguridad del acceso a Yape."
-            },
-            {
-                "keyword": "automatizacion",
-                "sentence": "La automatizacion de los pagos recurrentes facilita la gestión financiera."
-            },
-            {
-                "keyword": "banca_celular",
-                "sentence": "Yape ha revolucionado la banca_celular en el Perú."
-            },
-            {
-                "keyword": "beneficiario",
-                "sentence": "Ingresa el número del beneficiario para completar la transferencia."
-            },
-            {
-                "keyword": "billetera",
-                "sentence": "Tu billetera móvil reemplaza el uso de efectivo en el mercado."
-            },
-            {
-                "keyword": "bloqueo",
-                "sentence": "En caso de pérdida, solicita el bloqueo inmediato de tu cuenta Yape."
-            },
-            {
-                "keyword": "bono",
-                "sentence": "El gobierno distribuyó el bono a través de billeteras digitales."
-            },
-            {
-                "keyword": "cajero",
-                "sentence": "La opción de retiro permite sacar dinero del cajero sin tarjeta."
-            },
-            {
-                "keyword": "canal",
-                "sentence": "Yape se ha convertido en un canal principal para pagos minoristas."
-            },
-            {
-                "keyword": "carritos_pagadores",
-                "sentence": "Los carritos_pagadores agilizan el cobro en las ferias locales."
-            },
-            {
-                "keyword": "cobro",
-                "sentence": "El cobro mediante código QR evita el contacto físico."
-            },
-            {
-                "keyword": "comisión",
-                "sentence": "Las transferencias por Yape suelen estar libres de comisión para el usuario."
-            },
-            {
-                "keyword": "cronograma",
-                "sentence": "Consulta el cronograma de pagos para saber cuándo recibirás el depósito."
-            },
-            {
-                "keyword": "cuenta",
-                "sentence": "Necesitas vincular una cuenta bancaria o DNI para usar el servicio."
-            },
-            {
-                "keyword": "deposito",
-                "sentence": "El deposito llegó a mi cuenta de inmediato gracias a la aplicación."
-            },
-            {
-                "keyword": "desempeno",
-                "sentence": "El buen desempeno de la plataforma asegura transacciones sin interrupciones."
-            },
-            {
-                "keyword": "digitalizacion",
-                "sentence": "La digitalizacion de los pagos impulsa la inclusión financiera."
-            },
-            {
-                "keyword": "eficiencia",
-                "sentence": "La eficiencia del sistema permite miles de operaciones por segundo."
-            },
-            {
-                "keyword": "estafa",
-                "sentence": "Los usuarios deben estar alertas ante cualquier intento de estafa digital."
-            },
-            {
-                "keyword": "fraude",
-                "sentence": "Los sistemas de Yape monitorean patrones para prevenir el fraude."
-            },
-            {
-                "keyword": "infraestructura",
-                "sentence": "La infraestructura tecnológica soporta el alto volumen de operaciones diarias."
-            },
-            {
-                "keyword": "innovacion",
-                "sentence": "Yape representa una innovacion clave en el sector fintech peruano."
-            },
-            {
-                "keyword": "interoperabilidad",
-                "sentence": "La interoperabilidad permite transferir dinero entre distintas billeteras."
-            },
-            {
-                "keyword": "limite",
-                "sentence": "Existe un limite diario para el monto de las transacciones."
-            },
-            {
-                "keyword": "modalidad_pago",
-                "sentence": "Esta nueva modalidad_pago es aceptada en la mayoría de comercios."
-            },
-            {
-                "keyword": "monto",
-                "sentence": "Ingresa el monto exacto a pagar antes de confirmar."
-            },
-            {
-                "keyword": "mype",
-                "sentence": "Yape es una herramienta vital para la gestión de caja de la mype."
-            },
-            {
-                "keyword": "operacion",
-                "sentence": "Al finalizar, recibirás una constancia de la operacion realizada."
-            },
-            {
-                "keyword": "pago",
-                "sentence": "Realiza el pago escaneando el código QR del vendedor."
-            },
-            {
-                "keyword": "phishing",
-                "sentence": "Evita abrir enlaces sospechosos para no caer en phishing."
-            },
-            {
-                "keyword": "plataforma",
-                "sentence": "La plataforma de Yape está diseñada para ser intuitiva y rápida."
-            },
-            {
-                "keyword": "plazo",
-                "sentence": "El plazo para validar la transacción expira en pocos minutos."
-            },
-            {
-                "keyword": "proteccion",
-                "sentence": "La proteccion de tus datos financieros es prioridad de la aplicación."
-            },
-            {
-                "keyword": "qr",
-                "sentence": "Muestra tu código qr para recibir un pago al instante."
-            },
-            {
                 "keyword": "rapidez",
-                "sentence": "La rapidez de las transferencias es la principal ventaja de Yape."
+                "sentence": "La rapidez de la transacción es la mayor ventaja técnica."
             },
             {
-                "keyword": "recarga",
-                "sentence": "Puedes hacer una recarga de saldo a tu celular desde la app."
+                "keyword": "interfaz",
+                "sentence": "La interfaz de usuario permite navegar por el menú fácilmente."
             },
             {
-                "keyword": "reclamo",
-                "sentence": "Si hubo un error, presenta un reclamo a través del canal de soporte."
+                "keyword": "sistema",
+                "sentence": "El sistema procesa miles de operaciones por segundo sin caerse."
             },
             {
-                "keyword": "registro",
-                "sentence": "El registro de usuarios requiere validación de identidad."
+                "keyword": "servidor",
+                "sentence": "El servidor respondió correctamente a la solicitud de pago."
             },
             {
-                "keyword": "retiro",
-                "sentence": "El retiro de efectivo se facilita mediante códigos generados en la app."
+                "keyword": "clave",
+                "sentence": "Ingresa tu clave de seis dígitos para validar el acceso."
             },
             {
-                "keyword": "riesgo",
-                "sentence": "Evaluar el riesgo de fraude es parte de la seguridad transaccional."
+                "keyword": "biometria",
+                "sentence": "La biometria facial asegura que solo tú entres a la cuenta."
             },
             {
                 "keyword": "saldo",
-                "sentence": "Verifica tu saldo disponible antes de intentar pagar."
+                "sentence": "Consulta tu saldo actualizado en la pantalla principal."
             },
             {
-                "keyword": "seguridad",
-                "sentence": "La seguridad de la aplicación incluye claves dinámicas y biometría."
+                "keyword": "historial",
+                "sentence": "Revisa el historial de movimientos para ver tus gastos."
             },
             {
-                "keyword": "servicio",
-                "sentence": "El servicio de billetera móvil está disponible las 24 horas."
+                "keyword": "qr",
+                "sentence": "Escanea el código qr para iniciar el protocolo de transferencia."
             },
             {
-                "keyword": "soporte",
-                "sentence": "El equipo de soporte atiende consultas técnicas sobre la app."
+                "keyword": "notificacion",
+                "sentence": "Recibirás una notificacion push cuando el dinero se acredite."
             },
             {
-                "keyword": "subsidio",
-                "sentence": "Muchas familias cobraron el subsidio estatal mediante Yape."
+                "keyword": "actualizacion",
+                "sentence": "La última actualizacion de software corrige errores de conexión."
             },
             {
-                "keyword": "tarifa",
-                "sentence": "Consulta si existe alguna tarifa por operaciones interbancarias."
+                "keyword": "menu",
+                "sentence": "El menu desplegable muestra las opciones de configuración."
             },
             {
-                "keyword": "tecnologia",
-                "sentence": "La tecnologia detrás de Yape permite la inclusión financiera masiva."
+                "keyword": "bateria",
+                "sentence": "La aplicación consume poca bateria mientras está en segundo plano."
             },
             {
-                "keyword": "token",
-                "sentence": "El token digital valida cada operación de forma segura."
+                "keyword": "datos",
+                "sentence": "El uso de la app no gasta tus datos móviles."
             },
             {
-                "keyword": "transacción",
-                "sentence": "Cada transacción queda registrada en el historial de la app."
+                "keyword": "wifi",
+                "sentence": "Conéctate a una red wifi para descargar la nueva versión más rápido."
             },
             {
-                "keyword": "transferencia",
-                "sentence": "La transferencia es inmediata entre usuarios de la misma red."
+                "keyword": "procesador",
+                "sentence": "El procesador del celular ejecuta la encriptación rápidamente."
             },
             {
-                "keyword": "transformacion",
-                "sentence": "Vivimos una transformacion hacia una economía sin efectivo."
+                "keyword": "algoritmo",
+                "sentence": "El algoritmo de seguridad detecta patrones de uso inusuales."
             },
             {
-                "keyword": "trazabilidad",
-                "sentence": "La trazabilidad digital permite seguir el rastro del dinero."
+                "keyword": "mantenimiento",
+                "sentence": "La plataforma entrará en mantenimiento programado esta madrugada."
+            },
+            {
+                "keyword": "descarga",
+                "sentence": "La descarga e instalación toma menos de un minuto."
+            },
+            {
+                "keyword": "registro",
+                "sentence": "Completa el registro ingresando tu documento de identidad."
             },
             {
                 "keyword": "validacion",
-                "sentence": "La validacion de identidad es obligatoria para activar la cuenta."
+                "sentence": "La validacion por mensaje de texto es un paso obligatorio."
             },
             {
-                "keyword": "ventanilla",
-                "sentence": "Ya no hace falta hacer cola en la ventanilla del banco."
-            }
-        ]
-    },
-    "afectiva": {
-        "description": "Aquí se considera aquello que refleja cómo se sienten las personas frente a las situaciones descritas: miedo, incertidumbre, alivio, esperanza, confianza, angustia.",
-        "anchors": [
-            {
-                "keyword": "confianza",
-                "sentence": "El uso generalizado de Yape genera confianza en el sistema financiero."
+                "keyword": "soporte",
+                "sentence": "Contacta al soporte técnico si tienes problemas de acceso."
             },
             {
-                "keyword": "desconfianza",
-                "sentence": "Las noticias sobre estafas crean desconfianza en los nuevos usuarios."
+                "keyword": "error",
+                "sentence": "Si aparece un mensaje de error, reinicia la aplicación."
             },
             {
-                "keyword": "miedo",
-                "sentence": "Existe miedo a equivocarse al digitar el número de destino."
+                "keyword": "pantalla",
+                "sentence": "Toca la pantalla para confirmar el monto a enviar."
             },
             {
-                "keyword": "temor",
-                "sentence": "El temor al robo digital frena a algunos a usar la app."
-            },
-            {
-                "keyword": "preocupación",
-                "sentence": "La preocupación por la seguridad de los datos es constante."
-            },
-            {
-                "keyword": "incertidumbre",
-                "sentence": "Hay incertidumbre sobre qué hacer si el sistema se cae."
-            },
-            {
-                "keyword": "ansiedad",
-                "sentence": "La ansiedad crece cuando la confirmación del pago demora."
-            },
-            {
-                "keyword": "angustia",
-                "sentence": "Sintió angustia al ver que el dinero no llegaba a su cuenta."
-            },
-            {
-                "keyword": "tensión",
-                "sentence": "Hubo tensión entre los usuarios durante la caída del servicio."
-            },
-            {
-                "keyword": "alarma",
-                "sentence": "La alarma se encendió ante la modalidad de falsos yapeos."
-            },
-            {
-                "keyword": "inseguridad",
-                "sentence": "La sensación de inseguridad afecta la adopción de pagos digitales."
-            },
-            {
-                "keyword": "vulnerabilidad",
-                "sentence": "Los adultos mayores sienten vulnerabilidad ante la tecnología compleja."
-            },
-            {
-                "keyword": "desesperación",
-                "sentence": "La desesperación fue evidente cuando no pudieron cobrar el bono."
-            },
-            {
-                "keyword": "tristeza",
-                "sentence": "Causa tristeza ver a personas estafadas con capturas falsas."
-            },
-            {
-                "keyword": "dolor",
-                "sentence": "Perder los ahorros por un clic falso causa un gran dolor."
-            },
-            {
-                "keyword": "sufrimiento",
-                "sentence": "El sufrimiento económico se alivia con la rapidez de las ayudas."
-            },
-            {
-                "keyword": "esperanza",
-                "sentence": "Yape representa una esperanza de modernización para los pequeños negocios."
-            },
-            {
-                "keyword": "alivio",
-                "sentence": "Fue un alivio recibir el pago sin tener que salir de casa."
-            },
-            {
-                "keyword": "gratitud",
-                "sentence": "Siento gratitud por la facilidad que brinda esta herramienta."
-            },
-            {
-                "keyword": "optimismo",
-                "sentence": "Hay optimismo sobre el futuro de los pagos digitales en el país."
-            },
-            {
-                "keyword": "alegría",
-                "sentence": "Da alegría ver cómo mi negocio crece aceptando Yape."
-            },
-            {
-                "keyword": "entusiasmo",
-                "sentence": "El entusiasmo por usar la nueva función fue masivo."
-            },
-            {
-                "keyword": "satisfacción",
-                "sentence": "La satisfacción del cliente aumenta al ofrecer pagos rápidos."
-            },
-            {
-                "keyword": "orgullo",
-                "sentence": "Es un orgullo que una app peruana sea tan exitosa."
-            },
-            {
-                "keyword": "conmoción",
-                "sentence": "La noticia del fraude causó conmoción en las redes."
-            },
-            {
-                "keyword": "impacto",
-                "sentence": "El impacto emocional de perder dinero es devastador."
-            },
-            {
-                "keyword": "estrés",
-                "sentence": "El estrés de no tener efectivo se soluciona con Yape."
-            },
-            {
-                "keyword": "frustración",
-                "sentence": "La frustración aparece cuando la app no carga."
-            },
-            {
-                "keyword": "indignación",
-                "sentence": "La indignación fue colectiva ante la falla del sistema."
-            },
-            {
-                "keyword": "impotencia",
-                "sentence": "Sintió impotencia al no poder cancelar la operación errónea."
-            },
-            {
-                "keyword": "confusión",
-                "sentence": "La confusión sobre las comisiones generó quejas."
-            },
-            {
-                "keyword": "calma",
-                "sentence": "Mantén la calma y verifica el saldo antes de pagar."
-            },
-            {
-                "keyword": "tranquilidad",
-                "sentence": "Pagar servicios desde casa me da tranquilidad."
-            },
-            {
-                "keyword": "pena",
-                "sentence": "Da pena que algunos usen la tecnología para robar."
-            },
-            {
-                "keyword": "sensibilidad",
-                "sentence": "Hay sensibilidad sobre el uso de datos personales."
-            },
-            {
-                "keyword": "afectación",
-                "sentence": "La afectación psicológica tras un ciberdelito es real."
-            },
-            {
-                "keyword": "preocupación",
-                "sentence": "Su preocupación principal era recuperar el dinero enviado."
-            },
-            {
-                "keyword": "temor",
-                "sentence": "Superó su temor a la tecnología y descargó la app."
-            },
-            {
-                "keyword": "angustia",
-                "sentence": "Pasó momentos de angustia hasta que se confirmó la transferencia."
-            },
-            {
-                "keyword": "incertidumbre",
-                "sentence": "La incertidumbre sobre el cobro del bono se disipó con Yape."
+                "keyword": "teclado",
+                "sentence": "Usa el teclado numérico para escribir la cantidad exacta."
             }
         ]
     },
     "social": {
-        "description": "Aquí no se trata de emociones individuales, sino de lo que hace la comunidad: campañas solidarias, donaciones, colectas, redes de apoyo.",
+        "description": "Aspectos comunitarios, solidarios y de interacción humana. Ayuda, donaciones, familia y compartir.",
         "anchors": [
             {
-                "keyword": "abandono",
-                "sentence": "Yape ayuda a combatir el abandono financiero de zonas rurales."
+                "keyword": "amigos",
+                "sentence": "Salí con mis amigos y dividimos la cuenta usando la app."
             },
             {
-                "keyword": "acompanamiento",
-                "sentence": "El acompanamiento digital es clave para los nuevos usuarios."
-            },
-            {
-                "keyword": "albergue",
-                "sentence": "El albergue recibe donaciones directamente por Yape."
-            },
-            {
-                "keyword": "alianza",
-                "sentence": "La alianza entre bancos permite pagos interbancarios."
-            },
-            {
-                "keyword": "amistad",
-                "sentence": "Yapear es un gesto de amistad al compartir gastos."
-            },
-            {
-                "keyword": "apoyo",
-                "sentence": "Envía tu apoyo económico a la causa mediante este QR."
-            },
-            {
-                "keyword": "asistencia",
-                "sentence": "La asistencia social llega más rápido con transferencias digitales."
-            },
-            {
-                "keyword": "ayuda",
-                "sentence": "Cualquier ayuda suma para la campaña solidaria."
-            },
-            {
-                "keyword": "banco_de_la_nacion",
-                "sentence": "El banco_de_la_nacion utiliza Yape para pagar subsidios."
-            },
-            {
-                "keyword": "bcr",
-                "sentence": "El bcr promueve la interoperabilidad de pagos."
-            },
-            {
-                "keyword": "benefactores",
-                "sentence": "Los benefactores transfirieron sus donativos vía app."
-            },
-            {
-                "keyword": "beneficencia",
-                "sentence": "La beneficencia pública acepta Yape para sus colectas."
-            },
-            {
-                "keyword": "bono",
-                "sentence": "Miles de familias recibieron el bono estatal en su celular."
-            },
-            {
-                "keyword": "campana",
-                "sentence": "La campana de donación se viralizó gracias a Yape."
-            },
-            {
-                "keyword": "ciudadania",
-                "sentence": "La ciudadania digital implica saber usar estas herramientas."
-            },
-            {
-                "keyword": "clinica",
-                "sentence": "La clinica solidaria recibe pagos por Yape para medicinas."
-            },
-            {
-                "keyword": "colaboracion",
-                "sentence": "Tu colaboracion es vital para meta de la teletón."
-            },
-            {
-                "keyword": "colecta",
-                "sentence": "Organizaron una colecta vecinal usando un código QR."
-            },
-            {
-                "keyword": "colectivo",
-                "sentence": "El colectivo de ayuda social recauda fondos digitalmente."
-            },
-            {
-                "keyword": "comunidad",
-                "sentence": "La comunidad se organiza para comprar víveres con Yape."
-            },
-            {
-                "keyword": "damnificados",
-                "sentence": "Se recolectó dinero para los damnificados del huaico."
-            },
-            {
-                "keyword": "desamparados",
-                "sentence": "Buscan ayudar a los desamparados facilitando donaciones rápidas."
-            },
-            {
-                "keyword": "desigualdad",
-                "sentence": "La tecnología reduce la desigualdad de acceso a servicios financieros."
-            },
-            {
-                "keyword": "donacion",
-                "sentence": "Haz tu donacion escaneando el código en pantalla."
-            },
-            {
-                "keyword": "donantes",
-                "sentence": "Los donantes prefieren la transparencia de la transferencia directa."
-            },
-            {
-                "keyword": "emergencia",
-                "sentence": "En casos de emergencia, Yape permite enviar ayuda al instante."
-            },
-            {
-                "keyword": "estado",
-                "sentence": "El estado moderniza la entrega de ayudas sociales."
-            },
-            {
-                "keyword": "exclusion",
-                "sentence": "Combatimos la exclusion financiera con tecnología accesible."
-            },
-            {
-                "keyword": "familias",
-                "sentence": "Las familias usaron Yape para recibir el apoyo del gobierno."
-            },
-            {
-                "keyword": "gobierno",
-                "sentence": "El gobierno impulsa el uso de billeteras digitales."
-            },
-            {
-                "keyword": "hogares",
-                "sentence": "El subsidio llegó a los hogares más vulnerables."
-            },
-            {
-                "keyword": "hospital",
-                "sentence": "El voluntariado del hospital recibe aportes por Yape."
-            },
-            {
-                "keyword": "midis",
-                "sentence": "El midis gestionó el pago a través de la billetera móvil."
-            },
-            {
-                "keyword": "movilizacion",
-                "sentence": "La movilizacion solidaria recaudó miles de soles en horas."
-            },
-            {
-                "keyword": "mype",
-                "sentence": "La mype local recibe apoyo de sus vecinos por Yape."
-            },
-            {
-                "keyword": "necesidad",
-                "sentence": "Ante la necesidad, la solidaridad se canaliza por la app."
-            },
-            {
-                "keyword": "olla_comun",
-                "sentence": "La olla_comun se sostiene con donaciones diarias por Yape."
-            },
-            {
-                "keyword": "organización",
-                "sentence": "La organización vecinal gestiona sus fondos con transparencia."
-            },
-            {
-                "keyword": "oxigeno",
-                "sentence": "Se hizo una colecta para comprar oxigeno medicinal."
-            },
-            {
-                "keyword": "pobreza",
-                "sentence": "La inclusión financiera ayuda a reducir la pobreza monetaria."
-            },
-            {
-                "keyword": "precariedad",
-                "sentence": "En situaciones de precariedad, la ayuda rápida es vital."
-            },
-            {
-                "keyword": "recaudacion",
-                "sentence": "La recaudacion de fondos superó la meta gracias a la app."
-            },
-            {
-                "keyword": "refugio",
-                "sentence": "El refugio de animales recibe microdonaciones por Yape."
-            },
-            {
-                "keyword": "solidaridad",
-                "sentence": "La solidaridad peruana se demuestra con cada yapeo."
-            },
-            {
-                "keyword": "subsidio",
-                "sentence": "El cobro del subsidio fue más ordenado con la billetera digital."
-            },
-            {
-                "keyword": "teletón",
-                "sentence": "La teletón habilita códigos QR para facilitar el aporte."
-            },
-            {
-                "keyword": "uci",
-                "sentence": "Ayudemos a pagar los gastos de uci de nuestro vecino."
-            },
-            {
-                "keyword": "union",
-                "sentence": "La union de los vecinos se refleja en el apoyo económico."
+                "keyword": "familia",
+                "sentence": "Envío dinero a mi familia que vive en provincia para ayudarles."
             },
             {
                 "keyword": "vecinos",
-                "sentence": "Los vecinos recolectaron dinero para la mejora del barrio."
+                "sentence": "Los vecinos organizaron una colecta para mejorar el parque."
+            },
+            {
+                "keyword": "comunidad",
+                "sentence": "Nuestra comunidad se apoya mutuamente en tiempos difíciles."
+            },
+            {
+                "keyword": "solidaridad",
+                "sentence": "La solidaridad de la gente se notó en las donaciones masivas."
+            },
+            {
+                "keyword": "ayuda",
+                "sentence": "Esa transferencia fue una gran ayuda para comprar medicinas."
+            },
+            {
+                "keyword": "donacion",
+                "sentence": "Hice una donacion voluntaria para el albergue de mascotas."
+            },
+            {
+                "keyword": "compartir",
+                "sentence": "Yapear es una forma de compartir gastos sin complicaciones."
+            },
+            {
+                "keyword": "juntos",
+                "sentence": "Juntos logramos recaudar lo necesario para la operación."
+            },
+            {
+                "keyword": "grupo",
+                "sentence": "Creamos un grupo para juntar el dinero del regalo de cumpleaños."
+            },
+            {
+                "keyword": "colecta",
+                "sentence": "La colecta pro-salud fue todo un éxito gracias a los aportes."
+            },
+            {
+                "keyword": "regalo",
+                "sentence": "Entre todos compramos un regalo sorpresa para mamá."
+            },
+            {
+                "keyword": "fiesta",
+                "sentence": "En la fiesta todos pagaron su cuota al instante."
+            },
+            {
+                "keyword": "reunion",
+                "sentence": "Durante la reunion familiar, nos pusimos al día con los pagos."
+            },
+            {
+                "keyword": "hermanos",
+                "sentence": "Mis hermanos y yo nos prestamos dinero cuando hace falta."
+            },
+            {
+                "keyword": "colaboracion",
+                "sentence": "Agradecemos la colaboracion de todos los que se sumaron a la causa."
             },
             {
                 "keyword": "voluntariado",
-                "sentence": "El grupo de voluntariado gestiona sus recursos vía Yape."
+                "sentence": "El equipo de voluntariado gestiona sus fondos de forma transparente."
+            },
+            {
+                "keyword": "caridad",
+                "sentence": "Hacer caridad es más fácil cuando puedes transferir al momento."
+            },
+            {
+                "keyword": "projimo",
+                "sentence": "Ayudar al projimo es un valor que debemos practicar siempre."
+            },
+            {
+                "keyword": "union",
+                "sentence": "La union hace la fuerza, y también facilita la economía del hogar."
+            },
+            {
+                "keyword": "equipo",
+                "sentence": "Todo el equipo de fútbol pagó la cancha desde sus celulares."
+            },
+            {
+                "keyword": "padrino",
+                "sentence": "El padrino envió la propina por la aplicación."
+            },
+            {
+                "keyword": "ahijado",
+                "sentence": "Mi ahijado recibió su regalo de navidad directamente en su cuenta."
+            },
+            {
+                "keyword": "compañeros",
+                "sentence": "Mis compañeros de trabajo y yo hacemos 'vacas' para el almuerzo."
+            },
+            {
+                "keyword": "invitacion",
+                "sentence": "La invitacion al evento incluía un QR para confirmar asistencia."
+            }
+        ]
+    },
+    "afectiva": {
+        "description": "Estados emocionales puros. Sentimientos positivos o negativos experimentados por el usuario.",
+        "anchors": [
+            {
+                "keyword": "feliz",
+                "sentence": "Me siento muy feliz de haber resuelto ese pago tan rápido."
+            },
+            {
+                "keyword": "alegria",
+                "sentence": "Es una alegria inmensa ver que el dinero llegó a tiempo."
+            },
+            {
+                "keyword": "amor",
+                "sentence": "Con mucho amor, te envío este pequeño presente."
+            },
+            {
+                "keyword": "gratitud",
+                "sentence": "Siento una profunda gratitud por quienes me apoyaron hoy."
+            },
+            {
+                "keyword": "alivio",
+                "sentence": "Fue un gran alivio no tener que ir al banco y hacer cola."
+            },
+            {
+                "keyword": "tranquilidad",
+                "sentence": "Me da tranquilidad saber que mis ahorros están seguros."
+            },
+            {
+                "keyword": "confianza",
+                "sentence": "Tengo plena confianza en que la operación saldrá bien."
+            },
+            {
+                "keyword": "esperanza",
+                "sentence": "Tengo la esperanza de que mi negocio crecerá con esto."
+            },
+            {
+                "keyword": "entusiasmo",
+                "sentence": "Hay mucho entusiasmo por probar la nueva funcionalidad."
+            },
+            {
+                "keyword": "orgullo",
+                "sentence": "Siento orgullo de usar tecnología hecha en mi país."
+            },
+            {
+                "keyword": "miedo",
+                "sentence": "Tenía miedo de equivocarme al digitar el número."
+            },
+            {
+                "keyword": "terror",
+                "sentence": "Me da terror pensar que alguien pueda robar mi celular."
+            },
+            {
+                "keyword": "angustia",
+                "sentence": "Pasé momentos de angustia hasta que vi la confirmación."
+            },
+            {
+                "keyword": "estres",
+                "sentence": "El estres de no tener efectivo desapareció gracias a la app."
+            },
+            {
+                "keyword": "preocupacion",
+                "sentence": "Mi mayor preocupacion era que el sistema se cayera."
+            },
+            {
+                "keyword": "frustracion",
+                "sentence": "Sentí mucha frustracion cuando la transacción falló."
+            },
+            {
+                "keyword": "ira",
+                "sentence": "Me llenó de ira ver que me habían cobrado una comisión oculta."
+            },
+            {
+                "keyword": "tristeza",
+                "sentence": "Me da tristeza no poder ayudar más a quienes lo necesitan."
+            },
+            {
+                "keyword": "decepcion",
+                "sentence": "Fue una gran decepcion que la app no funcionara en ese momento."
+            },
+            {
+                "keyword": "panico",
+                "sentence": "Entré en panico cuando no recordé mi clave de acceso."
+            },
+            {
+                "keyword": "impotencia",
+                "sentence": "Sientes impotencia cuando no hay señal y necesitas pagar."
+            },
+            {
+                "keyword": "confusion",
+                "sentence": "La nueva actualización me causó un poco de confusion al principio."
+            },
+            {
+                "keyword": "desconfianza",
+                "sentence": "Hay cierta desconfianza hacia los enlaces que llegan por mensaje."
+            },
+            {
+                "keyword": "ansiedad",
+                "sentence": "La espera de la confirmación me genera un poco de ansiedad."
+            },
+            {
+                "keyword": "sorpresa",
+                "sentence": "Fue una grata sorpresa recibir ese dinero inesperado."
             }
         ]
     }

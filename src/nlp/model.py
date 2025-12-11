@@ -64,22 +64,27 @@ class LisbethModel:
             
         return final_embeddings
 
-    def get_static_embedding(self, word):
+    def get_static_embedding(self, word, layers=4):
         """
-        Extracts the 'static' embedding (Layer 0) for a word in isolation.
-        Used for the 'Baseline' component of the Hybrid Anchor Strategy.
+        Extracts the 'static' embedding for a word in isolation, BUT using the same
+        layer strategy as the contextual embeddings (default: Concat last 4 layers).
+        This ensures mathematical compatibility (same dimensionality, e.g. 3072)
+        for projections.
         """
         inputs = self.tokenizer(word, return_tensors="pt", add_special_tokens=False).to(self.device)
         with torch.no_grad():
             outputs = self.model(**inputs, output_hidden_states=True)
             
-        # Hidden state 0 is the output of the Embeddings Layer
-        # Shape: (batch, seq_len, hidden_dim)
-        layer_0 = outputs.hidden_states[0]
+        # Stack hidden states: (n_layers, batch, seq_len, hidden_dim)
+        hidden_states = outputs.hidden_states
+        
+        # Concatenate last n layers
+        selected_layers = hidden_states[-layers:]
+        concat_embedding = torch.cat(selected_layers, dim=-1)
         
         # Mean pool if the word was split into multiple subwords
-        # shape: (1, seq_len, hidden_dim) -> (hidden_dim,)
-        vector = torch.mean(layer_0[0], dim=0)
+        # shape: (1, seq_len, hidden_dim*layers) -> (hidden_dim*layers,)
+        vector = torch.mean(concat_embedding[0], dim=0)
         
         return vector.cpu().numpy()
 

@@ -26,6 +26,7 @@ dependencies = [
   "trafilatura>=1.6.0",
   "fake-useragent>=1.5.1",
   "feedparser>=6.0.11",
+  "scikit-learn>=1.5.2",
 ]
 
 [project.optional-dependencies]

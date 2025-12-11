@@ -55,16 +55,34 @@ Para asegurar la calidad en cada etapa del pipeline, definimos los siguientes ro
     *   **Estrategia**: Concatenar últimas 4 capas (o investigar penúltima) + Normalización (Whitening/Centering).
 *   [x] **Almacenamiento**: Guardar los vectores con metadatos (fecha, medio, oración original) en formato eficiente (ej. Parquet).
 
-### Fase 3: Análisis de Subespacios (Data Scientist)
-**Objetivo**: Modelar la evolución semántica.
+### Fase 3: Análisis de Subespacios Semánticos (En Progreso)
+**Objetivo**: Modelar la evolución del significado de la marca a lo largo del tiempo mediante técnicas algebraicas.
 
-*   [ ] **Segmentación Temporal**: Implementar **Ventanas Deslizantes** (Rolling Windows) para suavizar la deriva y reducir ruido (ej. Enero-Marzo, Febrero-Abril).
-*   [ ] **Análisis de Dimensionalidad**: Análisis Paralelo de Horn + Bootstrap para determinar $k$ estable.
-*   [ ] **Construcción de Subespacios**: Aplicar SVD a los vectores centrados/normalizados de cada ventana.
-*   [ ] **Cálculo de Métricas y Estabilidad**:
-    *   *Grassmannian Distance* con intervalos de confianza (Bootstrap).
-    *   *Semantic Volume* (Entropía).
-    *   *Frame Projection* (Proyección de Contextual Anchors).
+#### Sub-fase 3.1: Estrategia de Segmentación Temporal (Data Scientist)
+**Objetivo**: Preparar los datos para un análisis evolutivo robusto, evitando el ruido de las fluctuaciones diarias.
+*   [ ] **Implementar Rolling Windows**: Crear generador de ventanas deslizantes configurables (ej. Tamaño: 3 meses, Paso: 1 mes) para suavizar tendencias.
+*   [ ] **Filtrado Dinámico de Vocabulario**: Asegurar que solo términos relevantes y persistentes en la ventana temporal sean considerados (min_frequency per window).
+*   [ ] **Validación de Densidad**: Verificar que cada ventana tenga suficiente densidad de "keywords" para un análisis estadísticamente significativo.
+
+#### Sub-fase 3.2: Análisis de Estabilidad y Dimensionalidad (Data Scientist)
+**Objetivo**: Determinar matemáticamente cuántas dimensiones ($k$) son necesarias para representar la realidad latente sin sobreajuste.
+*   [ ] **Análisis Paralelo de Horn**: Implementar test de permutación para distinguir señal de ruido aleatorio.
+*   [ ] **Bootstrapping de Estabilidad**: Evaluar la robustez de los autovalores mediante remuestreo con reemplazo.
+*   [ ] **Selección de $k$ Óptimo**: Definir criterio de corte automático para cada ventana temporal.
+
+## 3.3 Subspace Construction (Data Scientist)
+- [ ] **Architecture Refactor**: Split into `scripts/run_phase3_pipeline.py` (CLI) and `notebooks/phase3_analysis.ipynb` (Viewer).
+- [ ] Implement SVD decomposition on centered embeddings <!-- id: 45 -->
+- [ ] Implement Orthogonal Procrustes for temporal alignment <!-- id: 46 -->
+- [ ] Validate alignment stability with synthetic data <!-- id: 47 -->
+
+## 3.4 Sociological Metrics (Researcher + Data Scientist)
+- [ ] **Methodology Upgrade**: Implement **Gram-Schmidt Orthogonalization** for Anchors (`metrics.py`).
+- [ ] Calculate Semantic Drift (Cosine Distance $t$ vs $t+1$) <!-- id: 47 -->
+- [ ] Calculate Theoretical Projections (Heatmap of Basis vs Orthogonal Anchors) <!-- id: 48 -->
+- [ ] Calculate Semantic Entropy (Volume of meaning) <!-- id: 49 -->
+la "ambigüedad" o "riqueza" del significado.
+*   [ ] **Proyección de Marcos (Frame Projection)**: Proyectar los vectores de la marca sobre los ejes definidos por las Anclas Contextuales (Confianza, Inclusión, Riesgo) extraídas en Fase 2.
 
 ### Fase 4: Interpretación y Visualización (Researcher + Data Scientist)
 **Objetivo**: Traducir números a narrativa sociológica.
