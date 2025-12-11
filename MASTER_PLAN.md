@@ -46,14 +46,14 @@ Para asegurar la calidad en cada etapa del pipeline, definimos los siguientes ro
 ### Fase 2: Infraestructura NLP (NLP Engineer)
 **Objetivo**: Convertir el corpus en una base de datos de vectores contextuales robustos.
 
-*   [ ] **Selección de Modelo Principal**: Utilizar `PlanTL-GOB-ES/roberta-large-bne` (Encoder Bidireccional SOTA en español).
+*   [x] **Selección de Modelo Principal**: Utilizar `PlanTL-GOB-ES/roberta-large-bne` (Encoder Bidireccional SOTA en español).
     *   **Modelo de Contraste**: Usar `bertin-project/bertin-roberta-base-spanish` para validar robustez.
     *   **Nota**: Se descarta GPT (Decoder) por inadecuación para representación semántica bidireccional.
-*   [ ] **Adaptación al Dominio (DAPT)**: Realizar *Continued Pretraining* del modelo sobre el corpus de prensa peruana para mejorar la representación de terminología local ("Yapear", "Plin").
-*   [ ] **Pipeline de Tokenización**: Implementar estrategia de **Subword Pooling** (promedio de sub-tokens) para manejar correctamente la fragmentación (ej. `['Yape', '##ar']` -> `Yapear`).
-*   [ ] **Extracción de Embeddings**: Generar tensores para cada ocurrencia de la marca.
+*   [x] **Adaptación al Dominio (DAPT)**: Realizar *Continued Pretraining* del modelo sobre el corpus de prensa peruana para mejorar la representación de terminología local ("Yapear", "Plin").
+*   [x] **Pipeline de Tokenización**: Implementar estrategia de **Subword Pooling** (promedio de sub-tokens) para manejar correctamente la fragmentación (ej. `['Yape', '##ar']` -> `Yapear`).
+*   [x] **Extracción de Embeddings**: Generar tensores para cada ocurrencia de la marca.
     *   **Estrategia**: Concatenar últimas 4 capas (o investigar penúltima) + Normalización (Whitening/Centering).
-*   [ ] **Almacenamiento**: Guardar los vectores con metadatos (fecha, medio, oración original) en formato eficiente (ej. Parquet).
+*   [x] **Almacenamiento**: Guardar los vectores con metadatos (fecha, medio, oración original) en formato eficiente (ej. Parquet).
 
 ### Fase 3: Análisis de Subespacios (Data Scientist)
 **Objetivo**: Modelar la evolución semántica.

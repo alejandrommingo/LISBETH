@@ -31,3 +31,7 @@ dist/
 CONTRIBUTING.md
 
 data/*.csv
+data/*.txt
+data/*.parquet
+models/
+

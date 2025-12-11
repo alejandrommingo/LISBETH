@@ -58,6 +58,28 @@ PYTHONPATH=src python -m news_harvester prototype \
     --output data/yape_dataset.csv
 ```
 
+### Fase 2: Infraestructura NLP (Nuevo)
+
+Esta fase implementa la adaptación de modelos de lenguaje (DAPT) y la extracción de embeddings contextuales.
+
+#### Entrenar Modelo (DAPT)
+Adapta un modelo base (ej. RoBERTa) al corpus de noticias recolectado:
+```bash
+python src/cli.py dapt --data data/corpus.txt --output models/roberta-adapted --epochs 3
+```
+
+#### Extraer Embeddings
+Genera vectores para múltiples palabras clave ("Yape", "Yapear", "Plin") usando Subword Pooling:
+```bash
+python src/cli.py extract --data_dir data --keywords Yape Yapear Plin --output data/embeddings_yape.parquet
+```
+
+#### Demo Interactiva
+Ejecuta el notebook educativo para ver el pipeline paso a paso:
+```bash
+jupyter notebook notebooks/phase2_demo.ipynb
+```
+
 ### Argumentos Clave
 
 *   `--keyword`: Término de búsqueda (ej. "Yape", "Vizcarra", "BCP").
