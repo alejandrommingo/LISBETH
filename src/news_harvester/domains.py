@@ -50,3 +50,23 @@ PERUVIAN_MEDIA = {
     "diariocambio": "diariocambio.com.pe",
     "diariosinfronteras": "diariosinfronteras.com.pe",
 }
+
+DOMAIN_SELECTORS = {
+    "elcomercio.pe": ["div#contenido", "div[itemprop='articleBody']"],
+    "larepublica.pe": ["div.story-content", "div.content-body"],
+    "gestion.pe": ["div.story-contents", "section.article-body"],
+    "trome.com": ["div.story-content"],   # Trome usa layout similar a Depor/ElComercio moderno a veces
+    "peru21.pe": ["div.story-contents", "div.article-body"],
+    "diariocorreo.pe": ["div.story-contents", "div[itemprop='articleBody']"],
+}
+
+MEDIA_RSS_FEEDS = {
+    "elcomercio": "https://elcomercio.pe/arc/outboundfeeds/rss/",
+    "larepublica": "https://larepublica.pe/rss/",
+    "gestion": "https://gestion.pe/arc/outboundfeeds/rss/",
+    "peru21": "https://peru21.pe/arc/outboundfeeds/rss/",
+    "rpp": "https://rpp.pe/feed",
+    "trome": "https://trome.com/arc/outboundfeeds/rss/",
+    "depor": "https://depor.com/arc/outboundfeeds/rss/",
+    "correo": "https://diariocorreo.pe/arc/outboundfeeds/rss/",
+}

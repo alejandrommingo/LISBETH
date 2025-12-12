@@ -28,41 +28,53 @@ class LisbethModel:
                 
         return matches
 
-    def extract_embedding(self, text, target_word, layers=4):
+        return final_embeddings
+        
+    def extract_dual_embedding(self, text, target_word, layers_context=4, layers_static=3):
         """
-        Extracts the embedding for the target_word in the text.
-        Implements Subword Mean Pooling if the word splits into multiple tokens.
-        Uses concatenation of the last `layers` hidden states.
+        Extracts two versions of the embedding:
+        1. Contextual: Concat last `layers_context` (Default 4). For Dynamic Subspace.
+        2. Static-Compatible: Sum last `layers_static` (Default 3). For Projection onto Static Anchors.
         """
         inputs = self.tokenizer(text, return_tensors="pt", truncation=True, max_length=512).to(self.device)
         
         with torch.no_grad():
             outputs = self.model(**inputs, output_hidden_states=True)
             
-        # Stack hidden states: (n_layers, batch, seq_len, hidden_dim)
-        # We want the last n layers
         hidden_states = outputs.hidden_states
-        # Concatenate last n layers along the feature dimension
-        # hidden_states tuple length is n_layers + 1 (embeddings)
-        selected_layers = hidden_states[-layers:] 
-        # Shape: batch, seq_len, hidden_dim * layers
-        concat_embedding = torch.cat(selected_layers, dim=-1)
         
-        # Find token indices
+        # 1. Contextual Strategy (Concat last N)
+        selected_layers_ctx = hidden_states[-layers_context:]
+        concat_embedding = torch.cat(selected_layers_ctx, dim=-1) # (1, seq, dim*4)
+        
+        # 2. Static Strategy (Sum last M)
+        # Note: We take last M *before* the very last layer? Or truly last M?
+        # User said "Last 3 layers". Usually last layer is too specialized, but let's stick to last 3.
+        selected_layers_static = hidden_states[-layers_static:] 
+        # Stack then sum: (3, 1, seq, dim) -> (1, seq, dim)
+        stacked_static = torch.stack(selected_layers_static, dim=0)
+        sum_embedding = torch.sum(stacked_static, dim=0) 
+        
         indices = self.get_token_indices(inputs.input_ids, target_word)
-        
         if not indices:
             return None
             
-        final_embeddings = []
+        results = []
         for start, end in indices:
-            # Extract relevant vectors (shape: end-start, hidden_dim*layers)
-            sub_vectors = concat_embedding[0, start:end, :]
-            # Mean Pooling over subwords
-            pooled_vector = torch.mean(sub_vectors, dim=0)
-            final_embeddings.append(pooled_vector.cpu().numpy())
+            # Contextual
+            sub_vec_ctx = concat_embedding[0, start:end, :]
+            pooled_ctx = torch.mean(sub_vec_ctx, dim=0)
             
-        return final_embeddings
+            # Static
+            sub_vec_static = sum_embedding[0, start:end, :]
+            pooled_static = torch.mean(sub_vec_static, dim=0)
+            
+            results.append({
+                "contextual": pooled_ctx.cpu().numpy(),
+                "static": pooled_static.cpu().numpy()
+            })
+            
+        return results
 
     def get_static_embedding(self, word, layers=4):
         """

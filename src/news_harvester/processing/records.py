@@ -45,12 +45,16 @@ def build_news_record(
     devuelve ``None`` para permitir que el pipeline omita el registro.
     """
 
+    # Priorizar argumento html, luego article.raw_html
+    html_content = html or article.raw_html or ""
+
     plain_text = extract_plain_text(
-        html or "",
+        html_content,
         keyword=keyword,
         min_paragraph_chars=CONTENT_MIN_PARAGRAPH_CHARS,
         require_keyword=bool(keyword),
         strict_mode=False,
+        domain=article.domain,
     )
 
     if not plain_text:
@@ -73,7 +77,7 @@ def build_news_record(
         title=article.title,
         newspaper=article.domain,
         url=article.url,
-        published_at=article.publish_datetime or article.seen_datetime,
+        published_at=infer_published_datetime(article),
         plain_text=plain_text,
         keyword=keyword_str,
         relevance_score=relevance,

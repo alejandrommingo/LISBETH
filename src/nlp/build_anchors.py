@@ -34,22 +34,20 @@ def build_anchors(json_path, output_path, model_name="xlm-roberta-base"):
             
             # Extract embedding of 'keyword' from 'sentence'
             # Returns a list of tensors (one per occurrence). Expecting 1 usually.
-            embeddings = model.extract_embedding(sentence, keyword)
+            # Extract embeddings using Dual Strategy
+            # Returns a list of dicts {contextual, static}
+            embeddings = model.extract_dual_embedding(sentence, keyword)
             
             if embeddings:
-                # We take the mean if multiple occurrences (rare in these short sentences)
-                # or just the first one. Let's take the first for precision.
-                vector_contextual = embeddings[0]
-                
-                # Hybrid Strategy: Also get the static (Layer 0) embedding
-                vector_static = model.get_static_embedding(keyword)
+                # We take the first occurrence
+                vectors = embeddings[0]
                 
                 results.append({
                     "dimension": dimension,
                     "keyword": keyword,
                     "sentence": sentence,
-                    "embedding_contextual": vector_contextual,
-                    "embedding_static": vector_static,
+                    "embedding_contextual": vectors['contextual'],
+                    "embedding_static": vectors['static'],
                     "description": description
                 })
             else:

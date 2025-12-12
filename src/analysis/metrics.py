@@ -164,16 +164,50 @@ class SociologicalMetrics:
         for s in subspaces:
             row = {'date': s.label}
             
-            # PROJECT THE CENTROID (Drift in meaning space)
-            # OR PROJECT THE BASIS?
-            # User asked: "Are we relating... to the Center of Yape?"
-            # Let's project BOTH the Centroid (Mean meaning) AND the Dominant Axis (Variation).
+            # --- PROJECT THE CENTROID (Meaning Drift) ---
+            # Now we have TWO centroids per subspace if we have dual data. 
+            # Subspace object `s` currently only holds the main construction embedding (Contextual).
+            # We need to compute the "Static-Compatible" Centroid on the fly or pass it in.
             
-            # 1. Centroid Projection (Position Drift)
-            centroid_norm = s.centroid / np.linalg.norm(s.centroid)
+            # Since `subspaces` lists contain Subspace objects built from `embedding` (Contextual),
+            # `s.centroid` is the Mean Contextual Vector.
+            
+            # We need the Static Centroid. 
+            # For now, if the Subspace object doesn't have it, we calculate it from the raw window if provided.
+            # But the metric class doesn't see raw data.
+            # Hack: We will rely on s.centroid (Contextual) for Contextual Anchors.
+            # For Static Anchors, we can't easily get the Static Centroid without raw data access.
+            # However, the USER asked to use "Sum of Last 3" for static comparison.
+            # Let's assume for now the user will re-run Phase 3 twice if they want full separation,
+            # OR we update this method to accept an optional mapping of {date: static_centroid}.
+            
+            # Since Phase 3 constructor only takes one column, let's update `run_phase3_pipeline` to calculate 
+            # the static centroid for each window and inject it into the valid subspaces list or a separate dict.
+            
+            # Let's try to infer it here or assume `s.extra_centroids` exists.
+            
+            # Retrieve extra_centroids from the new extra_data generic field
+            extra = getattr(s, 'extra_data', {})
+            extra_cents = extra.get('extra_centroids', {})
+            
+            centroid_ctx = s.centroid / np.linalg.norm(s.centroid)
+            
+            # Get static centroid if available
+            centroid_static = extra_cents.get('static')
+            if centroid_static is not None:
+                centroid_static = centroid_static / np.linalg.norm(centroid_static)
+            else:
+                # Fallback to ctx if missing, but print warn? No, valid fallback for backwards compat
+                centroid_static = centroid_ctx
             
             for key, anchor_vec in anchor_vectors.items():
-                score = np.dot(centroid_norm, anchor_vec)
+                # Determine which centroid to use based on key suffix
+                if '_static' in key:
+                    current_centroid = centroid_static
+                else:
+                    current_centroid = centroid_ctx
+                    
+                score = np.dot(current_centroid, anchor_vec)
                 row[f'score_centroid_{key}'] = score
                 
             # 2. Basis Vectors Projection (Structure Orientation)
@@ -186,6 +220,11 @@ class SociologicalMetrics:
                 basis_vec = basis_vec / np.linalg.norm(basis_vec)
                 
                 for key, anchor_vec in anchor_vectors.items():
+                    # Check dimension compatibility
+                    if basis_vec.shape[0] != anchor_vec.shape[0]:
+                        # Cannot project Concat-4 Basis onto Sum-3 Anchor
+                        continue
+                        
                     # Absolute dot product because orientation (+/-) in SVD is arbitrary
                     # We care about "Parallelism", not direction for Basis
                     score = abs(np.dot(basis_vec, anchor_vec))

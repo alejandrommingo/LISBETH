@@ -9,13 +9,14 @@ class Subspace:
     """
     Container for a semantic subspace at a specific time t.
     """
-    def __init__(self, label, basis, centroid, eigenvalues, k, time_window=None):
+    def __init__(self, label, basis, centroid, eigenvalues, k, time_window=None, extra_data=None):
         self.label = label
         self.basis = basis # Shape (k, n_features) - The principal components
         self.centroid = centroid # Shape (n_features,) - The mean vector
         self.eigenvalues = eigenvalues
         self.k = k
         self.time_window = time_window # Dict with start_date, end_date
+        self.extra_data = extra_data or {} # Container for other centroids (e.g. static)
 
 class SubspaceConstructor:
     def __init__(self, analyzer: SubspaceAnalyzer = None):
@@ -48,6 +49,17 @@ class SubspaceConstructor:
             # 1. Centering (Crucial for PCA/SVD interpretation of variance)
             centroid = np.mean(X, axis=0)
             X_centered = X - centroid
+            
+            # 1.1 Calculate Extra Centroids (Static-Compatible) if available
+            extra_centroids = {}
+            if 'embedding_static' in data_df.columns:
+                # Check for nulls or issues
+                try:
+                    X_static = np.vstack(data_df['embedding_static'].values)
+                    centroid_static = np.mean(X_static, axis=0)
+                    extra_centroids['static'] = centroid_static
+                except Exception as e:
+                    print(f"Warning: Failed to calc static centroid for {label}: {e}")
             
             # 2. Dimensionality Selection
             if fixed_k is not None:
@@ -132,7 +144,8 @@ class SubspaceConstructor:
                 centroid=centroid,
                 eigenvalues=eigenvalues,
                 k=k,
-                time_window=w
+                time_window=w,
+                extra_data={'extra_centroids': extra_centroids}
             )
             self.subspaces.append(subspace)
             

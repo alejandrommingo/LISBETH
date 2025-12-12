@@ -38,16 +38,18 @@ def extract_embeddings(data_dir, output_file, keywords=None, model_name="PlanTL-
                     variants = set([word, word.lower(), word.capitalize()])
                     
                     for variant in variants:
-                        # Extract embeddings for EACH variant
-                        embeddings = model.extract_embedding(text, variant, layers=layers)
+                        # Extract embeddings for EACH variant using DUAL strategy
+                        embeddings = model.extract_dual_embedding(text, variant)
                         
                         if embeddings:
-                            for emb in embeddings:
+                            for res in embeddings:
                                 results.append({
                                     "date": date,
                                     "media": media,
                                     "keyword": word, # Normalize to the canonical keyword
-                                    "embedding": emb.tolist(),
+                                    "embedding": res['contextual'].tolist(), # Main dynamic embedding
+                                    "embedding_static": res['static'].tolist(), # For projection
+                                    "original_word": variant,
                                     "context": text[:200] + "..."
                                 })
                         

@@ -8,16 +8,24 @@ from src.analysis.subspaces import SubspaceConstructor
 from src.analysis.metrics import SociologicalMetrics
 from src.analysis.dimensionality import SubspaceAnalyzer
 
-def run_pipeline():
-    print(">>> Phase 3 Pipeline: Subspace Construction & Metrics Calculation <<<")
+def run_pipeline(input_pattern, output_suffix, anchors_path=None):
+    print(f">>> Phase 3 Pipeline: Subspace Construction & Metrics Calculation [Suffix: {output_suffix}] <<<")
     
     # 1. LOAD DATA
     print("[1/5] Loading Data...")
     dfs = []
     # Search for parquets in data/
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    pattern = os.path.join(base_dir, 'data', 'embeddings_*.parquet')
-    files = [f for f in glob.glob(pattern) if 'anchors' not in f and 'results' not in f]
+    # pattern = os.path.join(base_dir, 'data', 'embeddings_*.parquet') # OLD
+    
+    # Handle relative or absolute paths for input_pattern
+    if not os.path.isabs(input_pattern):
+        full_pattern = os.path.join(base_dir, input_pattern)
+    else:
+        full_pattern = input_pattern
+        
+    print(f"  Searching for: {full_pattern}")
+    files = [f for f in glob.glob(full_pattern) if 'anchors' not in f and 'results' not in f]
     
     if not files:
         print("Error: No embedding files found.")
@@ -137,10 +145,13 @@ def run_pipeline():
                 sim_matrix[i, j] = sim
                 
     sim_df = pd.DataFrame(sim_matrix, index=labels, columns=labels)
-    sim_df.to_csv(os.path.join(base_dir, 'data', 'phase3_sim_matrix.csv'))
+    sim_out = os.path.join(base_dir, 'data', f'phase3_sim_matrix{output_suffix}.csv')
+    sim_df.to_csv(sim_out)
 
     # Projections
-    anchors_path = os.path.join(base_dir, 'data', 'anchors_embeddings.parquet')
+    if anchors_path is None:
+        anchors_path = os.path.join(base_dir, 'data', 'anchors_embeddings.parquet')
+        
     if os.path.exists(anchors_path):
         anchors_df = pd.read_parquet(anchors_path)
         print("  Anchors loaded. Computing Orthogonal Projections...")
@@ -174,10 +185,17 @@ def run_pipeline():
     # Add Eigenvalues (Serialized as string to avoid schema issues with variable length lists)
     results_master['eigenvalues'] = [str(x) for x in eigen_data_list] # Store as string representation of list
         
-    output_path = os.path.join(base_dir, 'data', 'phase3_results.parquet')
+    output_path = os.path.join(base_dir, 'data', f'phase3_results{output_suffix}.parquet')
     results_master.to_parquet(output_path)
     print(f"  Success! Results saved to: {output_path}")
     print(results_master.head())
 
 if __name__ == "__main__":
-    run_pipeline()
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--input_pattern", required=True, help="Glob pattern for input parquets (e.g. 'data/embeddings_v2.parquet')")
+    parser.add_argument("--output_suffix", required=True, help="Suffix for output files (e.g. '_spanish')")
+    parser.add_argument("--anchors_path", default=None, help="Path to anchors parquet file")
+    args = parser.parse_args()
+    
+    run_pipeline(args.input_pattern, args.output_suffix, args.anchors_path)

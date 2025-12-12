@@ -14,7 +14,9 @@ from .collectors import Article, GDELTError, download_article_bodies, fetch_arti
 from .collectors.google import fetch_google_news
 from .collectors.rss import fetch_from_rss
 from .config import Settings
-from .domains import PERUVIAN_MEDIA
+from .domains import PERUVIAN_MEDIA, MEDIA_RSS_FEEDS
+
+
 from .models import NewsRecord
 from .processing.records import build_news_record
 from .storage import write_records
@@ -84,55 +86,55 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Descarga el HTML de cada artículo después de consultarlo en GDELT.",
     )
 
-    prototype_parser = subparsers.add_parser(
-        "prototype",
-        help="Ejecuta el prototipo completo (GDELT -> HTML -> texto -> tabla)",
+    harvest_parser = subparsers.add_parser(
+        "harvest",
+        help="Ejecuta la recolección completa (GDELT/Google/RSS -> HTML -> texto -> tabla)",
     )
-    prototype_parser.add_argument(
+    harvest_parser.add_argument(
         "--keyword",
         default=["Yape"],
         nargs="+",
         help="Palabra(s) clave a buscar (por defecto: Yape).",
     )
-    prototype_parser.add_argument(
+    harvest_parser.add_argument(
         "--from",
         dest="date_from",
         type=_parse_iso_date,
         default=None,
         help="Fecha inicial (YYYY-MM-DD). Usa la configuración por defecto si se omite.",
     )
-    prototype_parser.add_argument(
+    harvest_parser.add_argument(
         "--to",
         dest="date_to",
         type=_parse_iso_date,
         default=None,
         help="Fecha final (YYYY-MM-DD). Usa la configuración por defecto si se omite.",
     )
-    prototype_parser.add_argument(
+    harvest_parser.add_argument(
         "--format",
         choices=["csv", "parquet"],
         default="csv",
         help="Formato de salida para la tabla (csv o parquet).",
     )
-    prototype_parser.add_argument(
+    harvest_parser.add_argument(
         "--output",
         type=Path,
         default=None,
         help="Ruta de archivo destino. Si se omite, se genera una en el directorio configurado.",
     )
-    prototype_parser.add_argument(
-        "--skip-html",
+    harvest_parser.add_argument(
+        "--no-fetch-html",
         action="store_true",
-        help="No descargar los cuerpos HTML y generar el texto vacío (útil para pruebas rápidas).",
+        help="No descargar los cuerpos HTML. Los artículos sin texto serán descartados.",
     )
-    prototype_parser.add_argument(
+    harvest_parser.add_argument(
         "--sources",
         nargs="+",
         default=["gdelt"],
         choices=["gdelt", "google", "rss"],
         help="Fuentes a utilizar (por defecto: gdelt)",
     )
-    prototype_parser.add_argument(
+    harvest_parser.add_argument(
         "--media",
         nargs="+",
         default=["all"],
@@ -172,8 +174,8 @@ def main() -> None:
 
     settings = _load_environment()
 
-    if args.command == "prototype":
-        return run_prototype(args, settings)
+    if args.command == "harvest":
+        return run_harvest(args, settings)
 
     if args.command != "fetch":
         parser.print_help()
@@ -247,7 +249,7 @@ def main() -> None:
     print(f"Se guardaron {len(articles)} artículos en {output_path}.")
 
 
-def run_prototype(args: argparse.Namespace, settings: Settings) -> None:
+def run_harvest(args: argparse.Namespace, settings: Settings) -> None:
     keywords: list[str] = args.keyword
     date_from = args.date_from or settings.prototype_start
     date_to = args.date_to or settings.prototype_end
@@ -299,14 +301,22 @@ def run_prototype(args: argparse.Namespace, settings: Settings) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     
     # Clear file if it exists (fresh start)
-    # Or maybe we want to resume? For now, fresh start to be clean.
+    # Si retomamos, habría que leerlo, pero para este prototipo limpiamos.
     if output_path.exists():
         output_path.unlink()
 
     print(f"Iniciando recolección con Daily Chunking ({start_dt.date()} -> {end_dt.date()})...")
     print(f"Guardando resultados incrementalmente en: {output_path}")
 
-    total_saved = 0
+    # Metrics
+    metrics = {
+        "n_candidates": 0,
+        "n_download_ok": 0, # Note: download_article_bodies doesn't return stats easily, skipping exact check here unless Refactored
+        "n_records_saved": 0,
+        "n_skipped_no_text": 0
+    }
+
+    import pandas as pd
 
     while current_date <= end_dt:
         day_end = current_date.replace(hour=23, minute=59, second=59, microsecond=999999)
@@ -331,20 +341,65 @@ def run_prototype(args: argparse.Namespace, settings: Settings) -> None:
                 for a in batch:
                     a.source_api = "GDELT"
                 daily_articles.extend(batch)
-
-            # (Other sources omitted for brevity in this loop, assuming GDELT focus)
             
+            # GOOGLE NEWS (Complemento)
+            if "google" in selected_sources:
+                try:
+                    google_batch = fetch_google_news(
+                        keyword=keywords,
+                        start=current_date,
+                        end=day_end,
+                        source_country=settings.source_country
+                    )
+                    for a in google_batch:
+                        a.source_api = "GOOGLE"
+                    daily_articles.extend(google_batch)
+                except Exception as e_google:
+                    print(f"    -> Error Google News: {e_google}")
+
+            # RSS (Medios locales directos)
+            # Solo tiene sentido consultar RSS si estamos procesando el día de hoy
+            # De lo contrario, estaríamos consultando lo mismo para cada día histórico (ineficiente e incorrecto)
+            today = dt.datetime.now(dt.timezone.utc).date()
+            if "rss" in selected_sources and current_date.date() == today:
+                 try:
+                    # Collect all feeds
+                    feed_urls = list(MEDIA_RSS_FEEDS.values())
+                    rss_batch = fetch_from_rss(
+                        feeds=feed_urls,
+                        keyword=keywords,
+                        start=current_date,
+                        end=day_end
+                    )
+                    
+                    for a in rss_batch:
+                        a.source_api = "RSS"
+                    daily_articles.extend(rss_batch)
+                 except Exception as e_rss:
+                     print(f"    -> Error RSS: {e_rss}")
+
+
+            # Eliminar duplicados básicos por URL
+            unique_articles = {}
+            for a in daily_articles:
+                unique_articles[a.url] = a
+            daily_articles = list(unique_articles.values())
+
+            metrics["n_candidates"] += len(daily_articles)
+
             if daily_articles:
-                print(f"    -> Encontrados: {len(daily_articles)}", flush=True)
+                print(f"    -> Encontrados (total fuentes): {len(daily_articles)}", flush=True)
                 
-                if not args.skip_html:
+                if not args.no_fetch_html:
                     download_article_bodies(
                         daily_articles,
                         delay_seconds=settings.request_delay_seconds,
                         timeout=settings.request_timeout,
                     )
+                    # Rough estimate
+                    metrics["n_download_ok"] += sum(1 for a in daily_articles if a.raw_html)
                 
-                # Process and Save immediately
+                # Process and Filter
                 daily_records = []
                 for article in daily_articles:
                     record = build_news_record(
@@ -354,23 +409,35 @@ def run_prototype(args: argparse.Namespace, settings: Settings) -> None:
                     )
                     if record:
                         daily_records.append(record)
+                    else:
+                        metrics["n_skipped_no_text"] += 1
                 
                 if daily_records:
                     # Append to file
-                    # If first time (total_saved == 0), write header. Else append.
-                    mode = "w" if total_saved == 0 else "a"
-                    header = (total_saved == 0)
+                    data_rows = []
+                    for r in daily_records:
+                        row = r.model_dump()
+                        # Convert AnyHttpUrl to string for Parquet compatibility
+                        row["url"] = str(row["url"])
+                        data_rows.append(row)
+
+                    df = pd.DataFrame(data_rows)
                     
-                    # We need a helper to append. write_records overwrites.
-                    # Let's use pandas for simplicity or manual CSV writing?
-                    # write_records uses pandas. Let's modify write_records or do it here.
-                    # For simplicity, let's just use pandas here.
-                    import pandas as pd
-                    df = pd.DataFrame([r.model_dump() for r in daily_records])
-                    df.to_csv(output_path, mode=mode, header=header, index=False)
+                    if args.format == "csv":
+                        mode = "w" if metrics["n_records_saved"] == 0 else "a"
+                        header = (metrics["n_records_saved"] == 0)
+                        df.to_csv(output_path, mode=mode, header=header, index=False)
+                    elif args.format == "parquet":
+                        if metrics["n_records_saved"] == 0:
+                            df.to_parquet(output_path, engine="pyarrow", index=False)
+                        else:
+                            existing_df = pd.read_parquet(output_path)
+                            combined = pd.concat([existing_df, df], ignore_index=True)
+                            combined.to_parquet(output_path, engine="pyarrow", index=False)
                     
-                    total_saved += len(daily_records)
-                    print(f"    -> Guardados: {len(daily_records)} (Total: {total_saved})", flush=True)
+                    saved_count = len(daily_records)
+                    metrics["n_records_saved"] += saved_count
+                    print(f"    -> Guardados: {saved_count} (Total: {metrics['n_records_saved']})", flush=True)
             else:
                  print(f"    -> Sin resultados.", flush=True)
 
@@ -380,13 +447,15 @@ def run_prototype(args: argparse.Namespace, settings: Settings) -> None:
         current_date += dt.timedelta(days=1)
         current_date = current_date.replace(hour=0, minute=0, second=0, microsecond=0)
 
-    print(f"Proceso completado. Total registros: {total_saved}")
+    print(f"Proceso completado.")
+    print("Métricas de Ejecución:")
+    print(orjson.dumps(metrics, option=orjson.OPT_INDENT_2).decode())
 
     message = (
-        f"Prototipo completado: {total_saved} registros almacenados en {output_path}."
+        f"Harvest completado: {metrics['n_records_saved']} registros almacenados en {output_path}."
     )
-    if skipped_without_content:
-        message += f" Se omitieron {skipped_without_content} artículos sin párrafos relevantes."
+    if metrics["n_skipped_no_text"]:
+        message += f" Se omitieron {metrics['n_skipped_no_text']} artículos vacíos/irrelevantes."
     print(message)
 
 
