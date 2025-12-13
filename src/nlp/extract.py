@@ -1,75 +1,87 @@
 import argparse
-import pandas as pd
-import torch
-import glob
 import os
+import glob
+import pandas as pd
+import logging
 from src.nlp.model import LisbethModel
-from tqdm import tqdm
 
-def extract_embeddings(data_dir, output_file, keywords=None, model_name="PlanTL-GOB-ES/roberta-large-bne", layers=4):
-    if keywords is None:
-        keywords = ["Yape", "Yapear", "Yapame", "Yapeo", "Plin"]
-        
-    print(f"Initializing model: {model_name}")
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+def extract_embeddings(data_dir: str, output_file: str, keywords: list, model_name: str, baseline_result: bool = False):
+    """
+    Iterates over CSV files in data_dir, extracts embeddings for keywords, and saves to Parquet.
+    """
+    logger.info(f"Initializing extraction with model: {model_name}")
     try:
         model = LisbethModel(model_name=model_name)
     except Exception as e:
-        print(f"Primary model failed ({e}). Falling back to Base for demo if needed.")
-        model = LisbethModel(model_name="PlanTL-GOB-ES/roberta-base-bne")
+        logger.error(f"Cannot initialize model: {e}")
+        return
 
-    csv_files = glob.glob(os.path.join(data_dir, "yape_*.csv"))
-    results = []
+    # Find CSV files
+    csv_files = glob.glob(os.path.join(data_dir, "*.csv"))
+    if not csv_files:
+        logger.warning(f"No CSV files found in {data_dir}")
+        return
+
+    logger.info(f"Found {len(csv_files)} files to process.")
     
-    print(f"Processing {len(csv_files)} files for keywords: {keywords}...")
+    all_occurrences = []
     
-    for file in csv_files:
+    for file_path in csv_files:
+        logger.info(f"Processing {os.path.basename(file_path)}...")
         try:
-            df = pd.read_csv(file)
-            if "plain_text" not in df.columns:
+            df = pd.read_csv(file_path)
+            # Ensure required columns
+            text_col = "text" if "text" in df.columns else "plain_text"
+            if text_col not in df.columns:
+                logger.warning(f"Skipping {file_path}: neither 'text' nor 'plain_text' column found. Columns: {df.columns}")
                 continue
                 
-            texts = df["plain_text"].dropna().astype(str).tolist()
-            dates = df["published_at"].tolist() if "published_at" in df.columns else [None]*len(texts)
-            medias = df["newspaper"].tolist() if "newspaper" in df.columns else [None]*len(texts)
-            
-            for text, date, media in tqdm(zip(texts, dates, medias), total=len(texts), desc=os.path.basename(file)):
-                for word in keywords:
-                    # Try both original casing and lowercase to maximize recall
-                    variants = set([word, word.lower(), word.capitalize()])
+            # Iterate (this could be batched for performance, but keeping simple logic for now)
+            for idx, row in df.iterrows():
+                text = str(row.get(text_col, ""))
+                if not text or text == "nan": 
+                    continue
                     
-                    for variant in variants:
-                        # Extract embeddings for EACH variant using DUAL strategy
-                        embeddings = model.extract_dual_embedding(text, variant)
-                        
-                        if embeddings:
-                            for res in embeddings:
-                                results.append({
-                                    "date": date,
-                                    "media": media,
-                                    "keyword": word, # Normalize to the canonical keyword
-                                    "embedding": res['contextual'].tolist(), # Main dynamic embedding
-                                    "embedding_static": res['static'].tolist(), # For projection
-                                    "original_word": variant,
-                                    "context": text[:200] + "..."
-                                })
-                        
+                occurrences = model.extract_occurrences(text, keywords)
+                
+                # Enrich with metadata
+                for occ in occurrences:
+                    occ["source_file"] = os.path.basename(file_path)
+                    occ["published_at"] = row.get("published_at", None)
+                    occ["newspaper"] = row.get("newspaper", None)
+                    occ["url"] = row.get("url", None)
+                    occ["model_variant"] = "baseline" if baseline_result else "dapt" # Or inferred
+                    
+                    all_occurrences.append(occ)
+                    
         except Exception as e:
-            print(f"Error processing {file}: {e}")
-            
+            logger.error(f"Error processing file {file_path}: {e}")
+
+    if not all_occurrences:
+        logger.warning("No occurrences found for any keyword.")
+        return
+
+    logger.info(f"Saving {len(all_occurrences)} occurrences to {output_file}")
+    df_out = pd.DataFrame(all_occurrences)
+    
+    # Ensure directory exists
+    os.makedirs(os.path.dirname(output_file), exist_ok=True)
+    
     # Save to Parquet
-    if results:
-        df_out = pd.DataFrame(results)
-        print(f"Saving {len(df_out)} embeddings to {output_file}")
-        df_out.to_parquet(output_file, index=False)
-    else:
-        print("No embeddings found.")
+    df_out.to_parquet(output_file, engine="fastparquet" if "fastparquet" in str(pd.get_option("io.parquet.engine", "auto")) else "pyarrow")
+    logger.info("Extraction complete.")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--data_dir", default="data")
-    parser.add_argument("--output", default="data/embeddings_yape.parquet")
-    parser.add_argument("--keywords", nargs="+", default=["Yape", "Yapear", "Yapame", "Yapeo", "Plin"], help="List of keywords to extract")
-    parser.add_argument("--model", default="PlanTL-GOB-ES/roberta-large-bne")
+    parser = argparse.ArgumentParser(description="Extract embeddings for keywords")
+    parser.add_argument("--data_dir", required=True, help="Directory containing input CSVs")
+    parser.add_argument("--output", required=True, help="Output Parquet file")
+    parser.add_argument("--keywords", nargs="+", required=True, help="Keywords to extract")
+    parser.add_argument("--model", default="PlanTL-GOB-ES/roberta-large-bne", help="Model name or path")
+    
     args = parser.parse_args()
     
     extract_embeddings(args.data_dir, args.output, args.keywords, args.model)

@@ -1,201 +1,189 @@
 
+import argparse
+import sys
 import os
-import glob
 import pandas as pd
 import numpy as np
-from src.analysis.temporal import TemporalSegmenter
-from src.analysis.subspaces import SubspaceConstructor
-from src.analysis.metrics import SociologicalMetrics
-from src.analysis.dimensionality import SubspaceAnalyzer
+import logging
+from src.phase3.data_loader import Phase3DataLoader
+from src.phase3.windowing import RollingWindowSegmenter
+from src.phase3.dimensionality import DimensionalitySelector
+from src.phase3.subspace import SubspaceConstructor
+from src.phase3.metrics import SociologicalMetrics
 
-def run_pipeline(input_pattern, output_suffix, anchors_path=None):
-    print(f">>> Phase 3 Pipeline: Subspace Construction & Metrics Calculation [Suffix: {output_suffix}] <<<")
-    
-    # 1. LOAD DATA
-    print("[1/5] Loading Data...")
-    dfs = []
-    # Search for parquets in data/
-    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    # pattern = os.path.join(base_dir, 'data', 'embeddings_*.parquet') # OLD
-    
-    # Handle relative or absolute paths for input_pattern
-    if not os.path.isabs(input_pattern):
-        full_pattern = os.path.join(base_dir, input_pattern)
-    else:
-        full_pattern = input_pattern
-        
-    print(f"  Searching for: {full_pattern}")
-    files = [f for f in glob.glob(full_pattern) if 'anchors' not in f and 'results' not in f]
-    
-    if not files:
-        print("Error: No embedding files found.")
-        return
+# Set up logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
-    for f in files:
-        try:
-            dfs.append(pd.read_parquet(f))
-        except Exception as e:
-            print(f"Warning: Failed to read {f}: {e}")
-            
-    df_full = pd.concat(dfs, ignore_index=True)
+def main():
+    parser = argparse.ArgumentParser(description="Phase 3: Semantic Subspace Analysis Pipeline")
+    parser.add_argument("--data_path", required=True, help="Path to embeddings_occurrences.parquet")
+    parser.add_argument("--anchors_path", required=True, help="Path to anchors parquet")
+    parser.add_argument("--output_dir", required=True, help="Directory to save results")
+    parser.add_argument("--suffix", default="", help="Suffix for output files")
     
-    # 2. DEDUPLICATE
-    print(f"  Raw rows: {len(df_full)}")
-    df_full['hash'] = df_full['embedding'].apply(lambda x: hash(x.tobytes()))
-    df_full = df_full.drop_duplicates(subset=['hash']).drop('hash', axis=1)
-    print(f"  Unique embeddings: {len(df_full)}")
-    
-    # Ensure date format
-    if 'date' not in df_full.columns:
-        print("Error: 'date' column missing.")
-        return
-    df_full['date'] = pd.to_datetime(df_full['date'])
-    
-    # 3. SEGMENTATION
-    print("[2/5] Temporal Segmentation (3-month Rolling Windows)...")
-    segmenter = TemporalSegmenter(df_full, date_column='date')
-    windows = list(segmenter.generate_windows(window_months=3, step_months=1, min_count=50))
-    print(f"  Generated {len(windows)} valid windows.")
-    
-    if not windows:
-        print("Error: No valid windows.")
-        return
-        
-    # 4. SUBSPACE CONSTRUCTION AND ANALYSIS
-    print("[3/5] Subspace Construction & Dimensionality Analysis...")
-    constructor = SubspaceConstructor()
-    analyzer = SubspaceAnalyzer(random_state=42)
-    
-    # Calculate K evolution
-    k_evolution = []
-    for w in windows:
-        mat = np.vstack(w['data']['embedding'].values)
-        if mat.shape[0] > 30:
-             k, _, _ = analyzer.horns_parallel_analysis(mat, num_simulations=5)
-             k_evolution.append(k)
-        else:
-             k_evolution.append(0) # Not enough data
-             
-    # Build subspaces using dynamic K (or fixed K? Let's use max K found or median?)
-    # For temporal alignment (Procrustes), it is statistically cleaner to keep K fixed across time.
-    # Otherwise alignment between 3D and 4D spaces is mathematically ambiguous (padding with zeros?).
-    # We will use the Median K from the evolution as the fixed dimension for alignment.
-    valid_ks = [k for k in k_evolution if k > 0]
-    median_k = int(np.median(valid_ks)) if valid_ks else 3
-    print(f"  Median Intrinsic Dimension detected: k={median_k}. Using this for alignment.")
-    
-    subspaces = constructor.build_subspaces(windows, fixed_k=median_k, align=True)
-    print(f"  Constructed {len(subspaces)} aligned subspaces.")
-    
-    # 5. METRICS CALCULATION
-    print("[4/5] Computing Sociological Metrics (Drift, Entropy, Projections)...")
-    metrics_calc = SociologicalMetrics()
-    
-    # A. Sequential Drift (t vs t-1)
-    drift_df = metrics_calc.calculate_drift(subspaces)
-    
-    # B. Entropy
-    entropy_df = metrics_calc.calculate_entropy(subspaces)
-    
-    # C. Centroid Drift & Eigenvalues Data
-    centroid_dists = []
-    drift_dates = []
-    
-    # Store eigenvalues for reporting/plotting variance later
-    eigen_data_list = []
-    
-    for i, s in enumerate(subspaces):
-        # Collect eigenvalues
-        if s.eigenvalues is not None:
-             # Convert to list for serialization
-             ev_list = s.eigenvalues.tolist() if isinstance(s.eigenvalues, np.ndarray) else list(s.eigenvalues)
-             eigen_data_list.append(ev_list)
-        else:
-             eigen_data_list.append([])
-
-    # Shifted loop for drift
-    for i in range(1, len(subspaces)):
-        c_prev = subspaces[i-1].centroid
-        c_curr = subspaces[i].centroid
-        dist = np.linalg.norm(c_curr - c_prev)
-        centroid_dists.append(dist)
-        drift_dates.append(subspaces[i].label)
-    
-    centroid_df = pd.DataFrame({'date': drift_dates, 'centroid_drift': centroid_dists})
-
-    # D. Similarity Matrix (All-vs-All) for Heatmap
-    print("    Computing Window-Window Similarity Matrix...")
-    n_wins = len(subspaces)
-    sim_matrix = np.zeros((n_wins, n_wins))
-    labels = [s.label for s in subspaces]
-    
-    for i in range(n_wins):
-        for j in range(n_wins):
-            if i == j:
-                sim_matrix[i, j] = 1.0
-            else:
-                # Cosine similarity of flattened basis? Or Principal Angles?
-                # Metrics.calculate_drift uses trace(A' B). Let's use that.
-                # Assuming orthogonal bases:
-                # Sim = Trace(U_i.T @ U_j) / k  ? No, assumes aligned.
-                # Let's use simple subspace projection similarity:
-                # Sim = || U_i^T U_j ||_F^2 / k
-                term = np.dot(subspaces[i].basis, subspaces[j].basis.T) # shape (k, k)
-                sim = np.linalg.norm(term)**2 / subspaces[i].basis.shape[0]
-                sim_matrix[i, j] = sim
-                
-    sim_df = pd.DataFrame(sim_matrix, index=labels, columns=labels)
-    sim_out = os.path.join(base_dir, 'data', f'phase3_sim_matrix{output_suffix}.csv')
-    sim_df.to_csv(sim_out)
-
-    # Projections
-    if anchors_path is None:
-        anchors_path = os.path.join(base_dir, 'data', 'anchors_embeddings.parquet')
-        
-    if os.path.exists(anchors_path):
-        anchors_df = pd.read_parquet(anchors_path)
-        print("  Anchors loaded. Computing Orthogonal Projections...")
-        # Use new orthogonalization logic
-        proj_df = metrics_calc.calculate_projections(subspaces, anchors_df, orthogonalize=True)
-    else:
-        print("Warning: Anchors file not found. Skipping projections.")
-        proj_df = pd.DataFrame({'date': [s.label for s in subspaces]})
-        
-    # 6. SAVE RESULTS
-    print("[5/5] Saving Results...")
-    
-    # Merge all metrics into one master DataFrame
-    # Date is the key.
-    # Drift starts at index 1 (t vs t-1).
-    
-    dates = [s.label for s in subspaces]
-    results_master = pd.DataFrame({'date': dates})
-    
-    # Merge
-    results_master = results_master.merge(drift_df, on='date', how='left')
-    results_master = results_master.merge(entropy_df, on='date', how='left')
-    results_master = results_master.merge(centroid_df, on='date', how='left')
-    results_master = results_master.merge(proj_df, on='date', how='left')
-    
-    # Add K stats
-    # Align lengths
-    if len(k_evolution) == len(results_master):
-        results_master['intrinsic_dimension_k'] = k_evolution
-        
-    # Add Eigenvalues (Serialized as string to avoid schema issues with variable length lists)
-    results_master['eigenvalues'] = [str(x) for x in eigen_data_list] # Store as string representation of list
-        
-    output_path = os.path.join(base_dir, 'data', f'phase3_results{output_suffix}.parquet')
-    results_master.to_parquet(output_path)
-    print(f"  Success! Results saved to: {output_path}")
-    print(results_master.head())
-
-if __name__ == "__main__":
-    import argparse
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--input_pattern", required=True, help="Glob pattern for input parquets (e.g. 'data/embeddings_v2.parquet')")
-    parser.add_argument("--output_suffix", required=True, help="Suffix for output files (e.g. '_spanish')")
-    parser.add_argument("--anchors_path", default=None, help="Path to anchors parquet file")
     args = parser.parse_args()
     
-    run_pipeline(args.input_pattern, args.output_suffix, args.anchors_path)
+    # 1. Load Data
+    loader = Phase3DataLoader(args.data_path)
+    df_merged = loader.load_occurrences()
+    
+    if df_merged.empty:
+        logger.error("No data available. Exiting.")
+        sys.exit(1)
+        
+    # 2. Windowing
+    segmenter = RollingWindowSegmenter(window_months=3, step_months=1, min_count=50)
+    windows = list(segmenter.get_windows(df_merged))
+    logger.info(f"Generated {len(windows)} valid windows.")
+    
+    if not windows:
+        logger.error("No valid windows found. Exiting.")
+        sys.exit(1)
+
+    # 3. Dimensionality Analysis (First Pass)
+    logger.info("Running Dimensionality Analysis (Horn's PA)...")
+    dim_selector = DimensionalitySelector()
+    
+    k_stats = []
+    
+    for w in windows:
+        # Construct matrix
+        # 'embedding' column contains numpy arrays or bytes
+        # loader should have ensured they are usable. 
+        # If they are bytes, we need to decode.
+        
+        # Check first element
+        first_emb = w['data'].iloc[0]['embedding']
+        if isinstance(first_emb, bytes):
+            # Assume float32? need to know shape or dtype.
+            # Usually ndarray in parquet.
+            pass # Parquet read usually handles it if properly saved.
+            
+        # Stack
+        matrix = np.stack(w['data']['embedding'].values)
+        
+        k_opt, _, _ = dim_selector.select_k_horns(matrix)
+        stability = dim_selector.check_stability_bootstrap(matrix, k_opt)
+        
+        k_stats.append({
+            'window_start': w['start'],
+            'window_end': w['end'],
+            'count': w['count'],
+            'k_optimal': k_opt,
+            'stability': stability
+        })
+        
+    df_k = pd.DataFrame(k_stats)
+    
+    # Decide Consensus K for Alignment
+    # Median of K optimal
+    median_k = int(df_k['k_optimal'].median())
+    logger.info(f"Median Intrinsic Dimension: {median_k}. Using for alignment.")
+    
+    # 4. Subspace Construction & Alignment (Second Pass)
+    logger.info(f"Constructing Subspaces (Fixed K={median_k}) and Aligning...")
+    constructor = SubspaceConstructor(fixed_k=median_k)
+    
+    subspaces = []
+    aligned_bases = [] # For saving
+    
+    # Initialize previous subspace for alignment
+    prev_basis = None
+    
+    for w in windows:
+        matrix = np.stack(w['data']['embedding'].values)
+        basis, evals = constructor.build(matrix)
+        
+        # Align
+        if prev_basis is not None:
+             basis_aligned, R, error = constructor.align(prev_basis, basis)
+        else:
+             basis_aligned = basis
+             error = 0.0
+             
+        subspaces.append({
+            'window_start': w['start'],
+            'basis': basis_aligned,
+            'eigenvalues': evals,
+            'alignment_error': error
+        })
+        
+        prev_basis = basis_aligned
+        aligned_bases.append(basis_aligned)
+
+    # 5. Metrics
+    logger.info("Computing Sociological Metrics...")
+    metrics_calc = SociologicalMetrics()
+    
+    # Load Anchors
+    if os.path.exists(args.anchors_path):
+        anchors_df = pd.read_parquet(args.anchors_path)
+    else:
+        logger.warning(f"Anchors file not found: {args.anchors_path}")
+        anchors_df = pd.DataFrame()
+
+    results_list = []
+    
+    for i, s in enumerate(subspaces):
+        # Entropy
+        entropy = metrics_calc.calculate_entropy(s['eigenvalues'])
+        
+        # Drift (vs previous)
+        if i > 0:
+            drift = metrics_calc.calculate_drift(subspaces[i-1]['basis'], s['basis'])
+        else:
+            drift = 0.0 # Start
+            
+        # Frame Projections
+        projections = metrics_calc.calculate_frame_projection(s['basis'], anchors_df)
+        
+        row = {
+            'window_start': s['window_start'],
+            'entropy': entropy,
+            'drift': drift,
+            'alignment_error': s['alignment_error']
+        }
+        # Flatten projections
+        for dim, val in projections.items():
+            row[f'proj_{dim}'] = val
+            
+        results_list.append(row)
+        
+    df_metrics = pd.DataFrame(results_list)
+    
+    # 6. Save Outputs
+    os.makedirs(args.output_dir, exist_ok=True)
+    suffix = args.suffix
+    
+    # Dimensionality
+    df_k.to_parquet(os.path.join(args.output_dir, f'window_dimensionality{suffix}.parquet'))
+    
+    # Metrics (Drift, Entropy, Projections)
+    # Split them? Or Master? 
+    # Report asked for separate files but master is easier to verify.
+    # Let's write the requested separated files + master.
+    
+    # Drift
+    df_metrics[['window_start', 'drift']].to_parquet(os.path.join(args.output_dir, f'semantic_drift_timeseries{suffix}.parquet'))
+    
+    # Entropy
+    df_metrics[['window_start', 'entropy']].to_parquet(os.path.join(args.output_dir, f'semantic_entropy_timeseries{suffix}.parquet'))
+    
+    # Projections
+    # Extract projection cols
+    proj_cols = [c for c in df_metrics.columns if c.startswith('proj_')]
+    if proj_cols:
+        df_metrics[['window_start'] + proj_cols].to_parquet(os.path.join(args.output_dir, f'frame_projections{suffix}.parquet'))
+    
+    # Subspaces (NPZ)
+    np.savez(
+        os.path.join(args.output_dir, f'aligned_subspaces{suffix}.npz'), 
+        bases=np.array(aligned_bases),
+        dates=[pd.to_datetime(s['window_start']).isoformat() for s in subspaces]
+    )
+    
+    logger.info("Pipeline completed successfully.")
+
+if __name__ == "__main__":
+    main()

@@ -1,260 +1,176 @@
 import numpy as np
-import pandas as pd
-from scipy.stats import entropy
-from src.analysis.subspaces import Subspace
+from scipy.linalg import svd, orth, norm
+from sklearn.utils import resample
 
-class SociologicalMetrics:
-    def __init__(self):
-        pass
+def compute_subspace(X, k=None):
+    """
+    Computes subspace basis U and singular values S from matrix X.
+    X: (n_samples, d_features)
+    Returns: U (d, k), S (k,), k
+    """
+    # Centering
+    X_centered = X - np.mean(X, axis=0)
+    
+    # SVD
+    # X = U_full S V_T -> In numpy svd(X) returns u, s, vh
+    # But usually for PCA/Subspace we want eigenvectors of Covariance matrix X.T @ X 
+    # Or Right Singular Vectors of X (V).
+    # Shapes: X (n,d). U (n,n), S (min(n,d)), Vh (d,d)
+    # The basis of the row space (which captures variance) are the rows of Vh => V columns.
+    
+    u, s, vh = svd(X_centered, full_matrices=False)
+    
+    # Intrinsic dimensionality selection if k not provided (e.g. 95% variance)
+    # But we expect k to be provided from Horn's.
+    if k is None:
+        # Default fallback: 95% variance
+        var_explained = np.cumsum(s**2) / np.sum(s**2)
+        k = np.searchsorted(var_explained, 0.95) + 1
+        
+    basis = vh[:k, :].T # (d, k) - Columns are basis vectors
+    return basis, s[:k], k
 
-    def calculate_drift(self, subspaces: list):
-        """
-        Calculates the semantic stability (inverse of drift) between consecutive subspaces.
-        Metric: Average Cosine Similarity of the aligned bases.
+def horn_parallel_analysis(X, n_iter=20, p_value=0.05):
+    """
+    Determines intrinsic dimensionality k using Horn's Parallel Analysis.
+    Compares real eigenvalues vs random shuffle eigenvalues.
+    """
+    n, d = X.shape
+    X_centered = X - np.mean(X, axis=0)
+    
+    # Real eigenvalues (of covariance) ~ s**2
+    _, s_real, _ = svd(X_centered, full_matrices=False)
+    eig_real = s_real**2
+    
+    # Synthetic eigenvalues
+    eig_synth_dist = []
+    for _ in range(n_iter):
+        X_synth = np.apply_along_axis(np.random.permutation, 0, X_centered) # Shuffle each column
+        _, s_synth, _ = svd(X_synth, full_matrices=False)
+        eig_synth_dist.append(s_synth**2)
         
-        Returns:
-            pd.DataFrame with 'date', 'similarity', 'drift' columns.
-        """
-        results = []
-        
-        # First window has no predecessor, so drift is undefined (or 0)
-        if not subspaces:
-            return pd.DataFrame()
-            
-        results.append({
-            'date': subspaces[0].label,
-            'similarity': 1.0, 
-            'drift': 0.0
-        })
-        
-        for i in range(1, len(subspaces)):
-            s_prev = subspaces[i-1]
-            s_curr = subspaces[i]
-            
-            # 1. Similarity
-            # We assume bases are already aligned by Procrustes in Construction phase.
-            # We calculate mean absolute cosine similarity between corresponding basis vectors.
-            # If k differs, we take min k.
-            min_k = min(s_prev.k, s_curr.k)
-            
-            # Dot product of rows. Diagonals of product matrix if they are aligned row-by-row.
-            # If V_curr approx V_prev, then V_curr @ V_prev.T should be Identity-like.
-            # We want the trace of that product for the overlapping dimensions.
-            
-            # Basis shape: (k, features)
-            # Alignment quality: Trace( | V_prev @ V_curr.T | ) / k
-            
-            alignment_matrix = np.dot(s_prev.basis[:min_k], s_curr.basis[:min_k].T)
-            # We only care about diagonal (matching dimensions) if strictly aligned
-            # But Procrustes aligns the whole subspace.
-            # Let's use the trace of the absolute alignment matrix to capture total overlap?
-            # Or better, Singular Values of the cross-product (Principal Angles).
-            # "Cosine similarity of subspaces" = mean of cosines of principal angles.
-            
-            _, s, _ = np.linalg.svd(alignment_matrix)
-            subspace_similarity = np.mean(s) # Mean of cosines of principal angles
-            
-            drift = 1.0 - subspace_similarity
-            
-            results.append({
-                'date': s_curr.label,
-                'similarity': subspace_similarity,
-                'drift': drift
-            })
-            
-        return pd.DataFrame(results)
+    eig_synth_dist = np.array(eig_synth_dist) # (n_iter, min(n,d))
+    
+    # Thresholds (e.g. 95th percentile of random noise)
+    eig_synth_thresh = np.percentile(eig_synth_dist, 100 * (1 - p_value), axis=0)
+    
+    # Select k where real > synth
+    # Ensure min(n,d) length match
+    limit = min(len(eig_real), len(eig_synth_thresh))
+    k_horn = np.sum(eig_real[:limit] > eig_synth_thresh[:limit])
+    
+    return max(1, k_horn), eig_real, eig_synth_thresh
 
-    def _orthogonalize_anchors(self, anchor_vectors: dict) -> dict:
-        """
-        Applies Lowdin Symmetric Orthogonalization.
-        Finds the orthogonal basis closest (Frobenius norm) to the original non-orthogonal vectors.
-        This treats all dimensions equally, unlike Gram-Schmidt.
-        
-        Args:
-           anchor_vectors: dict {name: np.array}
-           
-        Returns:
-           dict: Orthogonalized vectors
-        """
-        # Identify the triplet of dimensions
-        hierarchy = ['funcional', 'social', 'afectiva']
-        suffixes = ['_contextual', '_static']
-        
-        processed_vectors = anchor_vectors.copy()
-        
-        for suffix in suffixes:
-            # Gather the 3 vectors for this type
-            keys = [f'{dim}{suffix}' for dim in hierarchy]
-            
-            # Check if all exist
-            vectors = []
-            valid_keys = []
-            for k in keys:
-                if k in anchor_vectors:
-                    vectors.append(anchor_vectors[k])
-                    valid_keys.append(k)
-            
-            if not vectors:
-                continue
-                
-            # Matrix C of shape (d_dim, n_vecs) -> Transpose to (n_vecs, d_dim) for calculation?
-            # Standard: Columns are vectors. shape (D, N)
-            # C = [v1, v2, v3]
-            C = np.stack(vectors, axis=1) # (3072, 3)
-            
-            # Singular Value Decomposition for S^(-1/2)
-            # C = U Sigma V.T
-            # Lowdin Orthogonalization: C_orth = U V.T (Polar Decomposition factor)
-            # Or explicit formula: C_orth = C (C.T C)^(-1/2)
-            
-            # Let's use SVD for stability:
-            # U, S, Vt = svd(C)
-            # C_orth = U @ Vt
-            
-            try:
-                # Thin SVD
-                U, S_vals, Vt = np.linalg.svd(C, full_matrices=False)
-                # This gives the closest orthogonal matrix (Polar Decomposition)
-                C_orth = np.dot(U, Vt)
-                
-                # Assign back
-                for i, k in enumerate(valid_keys):
-                   processed_vectors[k] = C_orth[:, i]
-                   
-            except np.linalg.LinAlgError:
-                print(f"Warning: SVD failed for {suffix}. Keeping originals.")
-                
-        return processed_vectors
+def orthogonal_procrustes(U_target, U_source):
+    """
+    Aligns U_source to U_target using rotation R.
+    Minimizes || U_target - U_source @ R ||_F
+    Returns: U_aligned, R, error
+    """
+    # M = Source^T @ Target
+    M = U_source.T @ U_target
+    u, s, vh = svd(M)
+    
+    # R = u @ vh
+    R = u @ vh
+    
+    U_aligned = U_source @ R
+    error = norm(U_target - U_aligned, ord='fro')
+    return U_aligned, R, error
 
-    def calculate_projections(self, subspaces: list, anchors_df: pd.DataFrame, orthogonalize=True):
-        """
-        Projects the primary dimensions of each subspace onto the theoretical anchors.
-        
-        Args:
-            subspaces: List of Subspace objects.
-            anchors_df: DataFrame with 'keyword'/'dimension' and 'embedding_static'/'embedding_contextual'.
-            orthogonalize: Bool. If True, applies Gram-Schmidt to anchors before projection.
-                        
-        Returns:
-            pd.DataFrame with columns like 'score_funcional_contextual', 'score_funcional_static'.
-        """
-        # Prepare Anchor Vectors for both types
-        anchor_vectors = {}
-        dimensions = anchors_df['dimension'].unique()
-        vector_types = ['contextual', 'static']
-        
-        for dim in dimensions:
-            dim_data = anchors_df[anchors_df['dimension'] == dim]
-            
-            for v_type in vector_types:
-                col_name = f'embedding_{v_type}'
-                if col_name in dim_data.columns:
-                    # Stack vectors
-                    vectors = np.vstack(dim_data[col_name].values)
-                    centroid = np.mean(vectors, axis=0)
-                    centroid = centroid / np.linalg.norm(centroid)
-                    anchor_vectors[f"{dim}_{v_type}"] = centroid
-        
-        # Apply Orthogonalization if requested
-        if orthogonalize:
-            anchor_vectors = self._orthogonalize_anchors(anchor_vectors)
-            
-        results = []
-        
-        for s in subspaces:
-            row = {'date': s.label}
-            
-            # --- PROJECT THE CENTROID (Meaning Drift) ---
-            # Now we have TWO centroids per subspace if we have dual data. 
-            # Subspace object `s` currently only holds the main construction embedding (Contextual).
-            # We need to compute the "Static-Compatible" Centroid on the fly or pass it in.
-            
-            # Since `subspaces` lists contain Subspace objects built from `embedding` (Contextual),
-            # `s.centroid` is the Mean Contextual Vector.
-            
-            # We need the Static Centroid. 
-            # For now, if the Subspace object doesn't have it, we calculate it from the raw window if provided.
-            # But the metric class doesn't see raw data.
-            # Hack: We will rely on s.centroid (Contextual) for Contextual Anchors.
-            # For Static Anchors, we can't easily get the Static Centroid without raw data access.
-            # However, the USER asked to use "Sum of Last 3" for static comparison.
-            # Let's assume for now the user will re-run Phase 3 twice if they want full separation,
-            # OR we update this method to accept an optional mapping of {date: static_centroid}.
-            
-            # Since Phase 3 constructor only takes one column, let's update `run_phase3_pipeline` to calculate 
-            # the static centroid for each window and inject it into the valid subspaces list or a separate dict.
-            
-            # Let's try to infer it here or assume `s.extra_centroids` exists.
-            
-            # Retrieve extra_centroids from the new extra_data generic field
-            extra = getattr(s, 'extra_data', {})
-            extra_cents = extra.get('extra_centroids', {})
-            
-            centroid_ctx = s.centroid / np.linalg.norm(s.centroid)
-            
-            # Get static centroid if available
-            centroid_static = extra_cents.get('static')
-            if centroid_static is not None:
-                centroid_static = centroid_static / np.linalg.norm(centroid_static)
-            else:
-                # Fallback to ctx if missing, but print warn? No, valid fallback for backwards compat
-                centroid_static = centroid_ctx
-            
-            for key, anchor_vec in anchor_vectors.items():
-                # Determine which centroid to use based on key suffix
-                if '_static' in key:
-                    current_centroid = centroid_static
-                else:
-                    current_centroid = centroid_ctx
-                    
-                score = np.dot(current_centroid, anchor_vec)
-                row[f'score_centroid_{key}'] = score
-                
-            # 2. Basis Vectors Projection (Structure Orientation)
-            # Check how each Latent Dimension of Yape aligns with the Anchors
-            # We analyze up to the first 3 dimensions if available
-            n_dims = len(s.basis)
-            for i in range(min(n_dims, 3)):
-                basis_vec = s.basis[i]
-                # No need to normalize if SVD output is orthonormal, but safe to do so
-                basis_vec = basis_vec / np.linalg.norm(basis_vec)
-                
-                for key, anchor_vec in anchor_vectors.items():
-                    # Check dimension compatibility
-                    if basis_vec.shape[0] != anchor_vec.shape[0]:
-                        # Cannot project Concat-4 Basis onto Sum-3 Anchor
-                        continue
-                        
-                    # Absolute dot product because orientation (+/-) in SVD is arbitrary
-                    # We care about "Parallelism", not direction for Basis
-                    score = abs(np.dot(basis_vec, anchor_vec))
-                    row[f'score_dim{i+1}_{key}'] = score
-                
-            results.append(row)
-            
-        return pd.DataFrame(results)
+def grassmannian_distance(U1, U2):
+    """
+    Computes distance between two subspaces U1, U2.
+    Based on principal angles.
+    d = sqrt(sum(theta_i^2)) or max(theta_i) or ||sin(theta)||_2
+    We use standard Binet-Cauchy or projection metric.
+    Robust Implementation: Projection metric = || P1 - P2 ||_F / sqrt(2) = || sin theta ||_2
+    Angle based: theta_i = arccos(singular values of U1.T @ U2)
+    """
+    # Ensure orthogonality
+    # SVD of overlap matrix
+    # Assumes U1, U2 are orthonormal basis (d, k)
+    
+    # U1.T @ U2 -> singular values correspond to cos(theta)
+    S = svd(U1.T @ U2, compute_uv=False)
+    
+    # Clip for numerical stability
+    S = np.clip(S, 0.0, 1.0)
+    
+    thetas = np.arccos(S)
+    dist = np.linalg.norm(thetas) # Geodesic distance
+    
+    return dist
 
-    def calculate_entropy(self, subspaces: list):
-        """
-        Calculates the Shannon entropy of the singular values (normalized).
-        High entropy = Meaning is distributed across many dimensions (Complex).
-        Low entropy = Meaning is concentrated in Dim 1 (Simple/Monolithic).
-        """
-        results = []
-        for s in subspaces:
-            sv = s.eigenvalues
-            # Normalize to prob distribution
-            total_var = np.sum(sv)
-            if total_var > 0:
-                probs = sv / total_var
-                ent = entropy(probs)
-            else:
-                ent = 0.0
-                
-            results.append({
-                'date': s.label,
-                'entropy': ent,
-                'k': s.k
-            })
-            
-        return pd.DataFrame(results)
+def semantic_entropy(singular_values):
+    """
+    Computes entropy of the normalized singular value spectrum.
+    Represents complexity/richness of the semantic space.
+    """
+    s_sq = singular_values**2
+    total_var = np.sum(s_sq)
+    if total_var == 0: return 0.0
+    
+    probs = s_sq / total_var
+    # Filter zeros for log
+    probs = probs[probs > 0]
+    
+    entropy = -np.sum(probs * np.log(probs))
+    # Normalized entropy (0-1)? Ideally yes, but standard Shannon is fine for relative comparison.
+    # Theoretical max is log(k).
+    return entropy
+
+def lowdin_orthogonalization(vectors):
+    """
+    Symmetric orthogonalization (Löwdin).
+    vectors: (d, m) matrix where columns are vectors to orthogonalize.
+    Preserves maximum similarity to original vectors.
+    """
+    ndim, m = vectors.shape
+    
+    # Gram matrix
+    S = vectors.T @ vectors
+    
+    # S^(-1/2)
+    # Eigendecomp S = V D V.T
+    d, V = np.linalg.eigh(S)
+    
+    # Inverse squareroot of eigenvalues
+    # Handle small eigenvalues
+    d_inv_sqrt = np.array([1.0/np.sqrt(x) if x > 1e-10 else 0.0 for x in d])
+    
+    S_inv_sqrt = V @ np.diag(d_inv_sqrt) @ V.T
+    
+    # V_orth = V_orig @ S^(-1/2) 
+    # Check dimensions? 
+    # Usually X_orth = X @ S^(-1/2) if rows are samples.
+    # Here columns are vectors.
+    # Let's assume input X is (m, d) for standard formula, but here (d, m)
+    # Formula for columns: V_orth = V @ S^(-1/2) works?
+    # (V S^-1/2).T (V S^-1/2) = S^-1/2 S S^-1/2 = I
+    
+    V_orth = vectors @ S_inv_sqrt
+    return V_orth
+
+def project_on_frame(subspace_U, frame_vectors):
+    """
+    Projects subspace U onto the frame axes.
+    Returns square cosine similarity (energy captured).
+    frame_vectors: (d, m) orthogonal columns.
+    subspace_U: (d, k) orthogonal columns.
+    
+    Projection of axis v onto U: || U.T @ v ||^2
+    """
+    # Projections: vector of size m
+    # For each frame axis j: measure overlap with U
+    
+    projections = []
+    for j in range(frame_vectors.shape[1]):
+        v = frame_vectors[:, j]
+        # P = || U^T v ||
+        p_val = norm(subspace_U.T @ v)
+        projections.append(p_val) # This is cos(theta) approx, square it?
+        # User defined: P = || U.T v ||. This is the length of projection. 
+        # Range 0-1 if v is unit.
+        
+    return np.array(projections)
