@@ -17,9 +17,8 @@ class LisbethModel:
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         self.tokenizer = None
         self.model = None
-        self.model_name = model_name
-        self.resolved_model_name = ""
         
+        # Determine strict model name or fallback
         self._load_model(model_name, allow_fallback)
 
     def _load_model(self, model_input: str, allow_fallback: bool):
@@ -34,10 +33,10 @@ class LisbethModel:
             self.tokenizer = AutoTokenizer.from_pretrained(target_model)
             self.model = AutoModel.from_pretrained(target_model).to(self.device)
             self.model.eval()
-            self.resolved_model_name = target_model
+            self.resolved_model_name = target_model # Public property to know what ran
         except Exception as e:
             logger.error(f"Failed to load {target_model}: {e}")
-            if allow_fallback and target_model == self.MODEL_REGISTRY["gov_roberta"]:
+            if allow_fallback and (target_model == self.MODEL_REGISTRY["gov_roberta"] or "roberta" in target_model):
                 logger.warning("Attempting fallback to BETO...")
                 fallback_model = self.MODEL_REGISTRY["beto"]
                 try:

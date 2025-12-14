@@ -31,8 +31,14 @@ venv/
 # Internal files
 CONTRIBUTING.md
 
+# Data
 data/*.csv
 data/*.txt
 data/*.parquet
+data/phase1/
+data/phase2/
+data/phase3/
+data/phase4/
+data/old_data_backup/
+data/test_phase2/
 models/
-

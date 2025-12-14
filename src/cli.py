@@ -29,11 +29,12 @@ def main():
     # --- Extract Command ---
     extract_parser = subparsers.add_parser("extract", help="Extract contextual embeddings")
     extract_parser.add_argument("--data_dir", required=True, help="Directory with CSV files")
-    extract_parser.add_argument("--output", required=True, help="Output Parquet file")
-    extract_parser.add_argument("--keywords", nargs="+", default=["Yape", "yapear"], help="List of keywords")
-    extract_parser.add_argument("--model", default="PlanTL-GOB-ES/roberta-large-bne", help="Model to use")
+    extract_parser.add_argument("--output", required=True, help="Output Parquet/CSV file")
+    extract_parser.add_argument("--keywords", nargs="+", default=["Yape"], help="List of keywords (Ignored in Phase 2 pipeline)")
+    extract_parser.add_argument("--model", default="PlanTL-GOB-ES/roberta-large-bne", help="Baseline Model")
+    extract_parser.add_argument("--dapt_model", default=None, help="DAPT Model path (optional)")
     # New flags for Phase 2 comparison
-    extract_parser.add_argument("--baseline", action="store_true", help="Flag to indicate this is a baseline run (adds metadata)")
+    extract_parser.add_argument("--baseline", action="store_true", help="Flag to indicate this is a baseline run (Legacy)")
     
     # --- Anchors Command ---
     anchors_parser = subparsers.add_parser("anchors", help="Build anchors dataset from JSON")
@@ -53,7 +54,7 @@ def main():
             
     elif args.command == "extract":
         try:
-            extract_embeddings(args.data_dir, args.output, args.keywords, args.model, baseline_result=args.baseline)
+            extract_embeddings(args.data_dir, args.output, args.keywords, args.model, baseline_result=args.baseline, dapt_model_name=args.dapt_model)
         except Exception as e:
             logger.error(f"Extraction failed: {e}")
             sys.exit(1)
