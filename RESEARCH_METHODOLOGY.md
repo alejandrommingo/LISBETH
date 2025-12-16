@@ -84,4 +84,24 @@ Para definir dimensiones estrictamente ortogonales sin favorecer a ninguna (como
 Para evitar resultados puramente matemáticos sin correlato real, se implementarán:
 
 1.  **Anotación Manual**: Un subconjunto de noticias será etiquetado manualmente por humanos (Funcional/Social/Afectivo + Valencia). Se medirá la capacidad de los subespacios $S_t$ para predecir estas etiquetas (Validación Cruzada).
-2.  **Correlación con Eventos**: Se construirá una línea de tiempo de eventos exógenos (Lanzamientos, Caídas de sistema, Bonos del estado) para validar si los cambios bruscos en la Distancia Grassmanniana coinciden con hitos reales del "Actor Social".
+
+## 6. Fase 4: Reporte Metodológico y de Resultados (Producto Final)
+
+Se priorizará la generación de un "Reporte Metodológico Exhaustivo" sobre el formato de paper académico tradicional, con el objetivo de maximizar la reproducibilidad y la transparencia técnica.
+
+### 6.1. Documentación de Ingeniería (El "Cómo")
+*   **Bitácora de Datos**: Cuantificación detallada del impacto de estrategias como el *Daily Chunking* y el manejo de renderizado JS en el volumen final del corpus.
+*   **Validación de NLP**: Reporte de métricas de ajuste del modelo (Training Loss, Perplexity) y justificación empírica de parámetros (e.g., selección de capas).
+
+### 6.2. Formalización Matemática
+*   Explicitación de las transformaciones álgebraicas: $SVD \rightarrow Procrustes \rightarrow Grassmanian Distance$.
+*   Documentación de la ortogonalización de anclas como garantía de independencia estadística entre dimensiones sociológicas.
+
+### 6.3. Artefactos de Resultados
+*   **Visualización de Deriva**: Gráficos de alta resolución de la evolución de la distancia $d(S_t, S_{t+1})$.
+*   **Proyecciones Térmicas**: Heatmaps de la intensidad de proyección sobre ejes de *Confianza*, *Inclusión* y *Riesgo*.
+*   **Tablas de Evolución Léxica**: Listados de términos con mayor *loading* en los vectores propios dominantes por periodo.
+
+### 6.4. Interpretación Sociológica
+*   **Análisis Forense**: Vinculación de picos en las métricas con noticias específicas (Qualitative Deep-Dive).
+*   **Evaluación del Actor**: Discusión sobre si Yape cumple los requisitos de agencia semántica basados en la complejidad y direccionalidad de sus subespacios.

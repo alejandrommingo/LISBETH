@@ -84,30 +84,35 @@ Para asegurar la calidad en cada etapa del pipeline, definimos los siguientes ro
 la "ambigüedad" o "riqueza" del significado.
 *   [ ] **Proyección de Marcos (Frame Projection)**: Proyectar los vectores de la marca sobre los ejes definidos por las Anclas Contextuales (Confianza, Inclusión, Riesgo) extraídas en Fase 2.
 
-### Fase 4: Interpretación y Creación de Reporte Académico (Researcher + Data Scientist)
-**Objetivo**: Sintetizar todo el proceso investigativo en un documento unificado de alto impacto científico (tipo Nature/Science Paper).
+### Fase 4: Reporte Metodológico y de Resultados (Exhaustivo)
+**Objetivo**: Generar un compendio técnico detallado que documente la totalidad del proceso de ingeniería, validación matemática y análisis sociológico, priorizando la reproducibilidad y la profundidad analítica sobre el formato académico tradicional.
 
-#### Sub-fase 4.1: Diseño del Reporte Integral
-*   [ ] **Estructura del Notebook Académico**: Crear `academic/Reporte_Integral_TFM.ipynb` con secciones: Abstract, Intro, Metodología (Data & Model), Resultados, Discusión.
-*   [ ] **Integración Teórica**: Incorporar resumen procesado de `INTRO_TFM.md` (Marco teórico: Marca como actor social).
-*   [ ] **Justificación Metodológica**: Documentar decisiones técnicas claves:
-    *   Selección de BERT/RoBERTa (vs GPT).
-    *   Estrategia de Capas (Last 4 concatenation).
-    *   Ajuste al Dominio (DAPT).
-    *   Ortogonalización de Anclas (Gram-Schmidt/Löwdin).
+#### Sub-fase 4.1: Consolidación y Documentación Metodológica (El "Cómo")
+**Objetivo**: Detallar la arquitectura final implementada, justificando cada decisión técnica con evidencia empírica de las fases previas.
+*   [ ] **Reporte de Adquisición de Datos**: Documentar la estrategia de GDELT (Daily Chunking, manejo de 200 OKs, limpieza de ruido), cuantificando la mejora en coverage respecto al enfoque tradicional.
+*   [ ] **Bitácora de Modelado NLP**:
+    *   Justificación de `roberta-large-bne` + DAPT: Comparativa de rendimiento Baseline vs Adapted (Pérdida, similitud de cosenos en terminología local).
+    *   Documentar estrategia de embeddings: Subword pooling y concatenación de capas (Last 4) + Whitening.
+    *   Análisis de "Semantic Bleed": Cómo la ventana de contexto (oración vs párrafo) afecta la representación.
 
-#### Sub-fase 4.2: Visualización de Resultados
-*   [ ] **Gráficos Evolutivos High-End**:
-    *   Serie de tiempo de *Semantic Drift* con eventos marcados.
-    *   Heatmap de *Proyecciones Teóricas* (Confianza, Inclusión, Riesgo) a través del tiempo.
-    *   Evolución de la *Entropía Semántica* (Complejidad del significado).
-*   [ ] **Visualización del Subespacio**: Plot 2D/3D (PCA) de la trayectoria de la marca.
+#### Sub-fase 4.2: Formalización del Marco Matemático
+**Objetivo**: Explicitar el álgebra detrás de las métricas para garantizar rigor científico.
+*   [ ] **Definición de Subespacios**: Documentar el proceso de SVD + Selección de Dimensiones ($k$) mediante Análisis Paralelo.
+*   [ ] **Alineamiento Temporal**: Explicación detallada de Procrustes Ortogonal y cómo resuelve el problema de la rotación arbitraria de espacios latentes.
+*   [ ] **Construcción de Anclas**: Detalle de la Ortogonalización de Gram-Schmidt para garantizar independencia lineal entre categorías sociológicas (ej. Confianza vs Riesgo).
 
-#### Sub-fase 4.3: Redacción y Discusión
-*   [ ] **Interpretación Sociológica**: Conectar los picos métricos con eventos de la realidad (COVID, Bonos, Caídas de sistema).
-*   [ ] **Validación Cruzada**: Contrastar hallazgos del modelo con la teoría de frames propuesta.
-*   [ ] **Conclusiones Finales**: Resumen de aportes y limitaciones.
-*   [ ] **Refinamiento Estilístico**: Asegurar tono académico neutral y riguroso en español.
+#### Sub-fase 4.3: Generación de Artefactos de Resultados (El "Qué")
+**Objetivo**: Producir visualizaciones y tablas de datos de alta resolución que narren la historia de los datos.
+*   [ ] **Narrativa Visual de la Deriva (Drift)**: Gráfico de serie temporal de *Semantic Drift* anotado con hitos históricos (Pandemia, Bonos, Caídas del servicio).
+*   [ ] **Proyecciones Sociológicas (Heatmaps)**: Mapas de calor de alta densidad mostrando la intensidad de proyección sobre los ejes ortogonalizados a lo largo del tiempo.
+*   [ ] **Evolución del Vocabulario**: Tablas dinámicas que muestren qué palabras "jallan" a la marca hacia nuevas direcciones en momentos críticos.
+*   [ ] **Análisis de Robustez**: Visualización de intervalos de confianza obtenidos vía Bootstrapping para validar que los cambios observados no son ruido estocástico.
+
+#### Sub-fase 4.4: Análisis e Interpretación Profunda (El "So What")
+**Objetivo**: Unir los hallazgos cuantitativos con la teoría sociológica del "Actor Social" en una narrativa extensa.
+*   [ ] **Estudios de Caso "Forenses"**: Deep-dive en 3-4 momentos clave identificados por las métricas, analizando las noticias específicas que causaron el cambio semántico.
+*   [ ] **Evaluación de la Hipótesis del Actor Social**: Discusión detallada basada en datos sobre la evolución de la agencia semántica de Yape.
+*   [ ] **Guía de Reproducibilidad**: Anexo técnico detallado para que terceros puedan replicar el pipeline completo (comandos CLI, semillas, environment).
 
 ---
 
