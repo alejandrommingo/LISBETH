@@ -22,8 +22,9 @@ Una tendencia ascendente constante en la entropía de los valores singulares sug
 
 ## 4.3 Proyecciones Temáticas
 
-Proyección del centroide de Yape sobre los ejes ortogonalizados de **Confianza**, **Inclusión** y **Riesgo**.
+Proyección del centroide de Yape sobre los ejes ortogonalizados de **Funcionalidad**, **Afectividad** y **Socialidad**.
 
 ![Projection Heatmap](assets/projection_heatmap.png)
 
-Se aprecia cómo la dimensión de **Inclusión** gana intensidad progresivamente, validando la hipótesis de que la marca ha permeado estratos sociales no bancarizados, trascendiendo su función transaccional pura.
+Se aprecia cómo la dimensión de **Socialidad** gana intensidad progresivamente, validando la hipótesis de que la marca ha permeado estratos sociales no bancarizados, trascendiendo su función transaccional pura.
+Entraremos en analisis más profundos en los notebooks que siguen. 

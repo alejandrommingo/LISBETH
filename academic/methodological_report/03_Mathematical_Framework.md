@@ -23,8 +23,8 @@ Esto permite calcular el **Semantic Drift** real, descartando rotaciones espuria
 
 ## 3.4 Ortogonalización de Anclas (Gram-Schmidt)
 
-Para medir la proyección de la marca sobre conceptos sociopolíticos (Confianza, Inclusión, Riesgo), definimos vectores ancla iniciales $a_1, a_2, a_3$.
-Para garantizar independencia estadística (que "Riesgo" no esté correlacionado con "Confianza"), aplicamos ortogonalización:
+Para medir la proyección de la marca sobre conceptos sociopolíticos (Funcioanl, Afectivo y Social), definimos vectores ancla iniciales $a_1, a_2, a_3$.
+Para garantizar independencia estadística, aplicamos ortogonalización:
 1.  Norma $\hat{u}_1 = a_1$.
 2.  $\hat{u}_2 = a_2 - \text{proj}_{\hat{u}_1}(a_2)$.
 3.  Etc.
