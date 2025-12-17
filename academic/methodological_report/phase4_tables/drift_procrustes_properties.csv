@@ -1,0 +1,3 @@
+variant,strategy,correlation_drift_procrustes
+baseline,penultimate,0.7460203777782227
+baseline,last4_concat,0.739011107572292

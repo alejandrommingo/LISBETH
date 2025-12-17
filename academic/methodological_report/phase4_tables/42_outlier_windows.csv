@@ -1,0 +1,9 @@
+window_end_month,metric,variant,strategy,value
+2021-03-01,drift,baseline,penultimate,3.163333449523301
+2023-01-01,drift,baseline,penultimate,3.1259048797313
+2021-03-01,drift,baseline,last4_concat,3.374868159843156
+2023-01-01,drift,baseline,last4_concat,3.2859522174045765
+2019-11-01,drift,dapt,penultimate,2.5606143600331093
+2022-10-01,drift,dapt,penultimate,2.6818613531834035
+2022-10-01,drift,dapt,last4_concat,2.823736194018157
+2023-01-01,drift,dapt,last4_concat,2.6750746751829158

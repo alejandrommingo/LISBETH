@@ -1,0 +1,21 @@
+window,variant,strategy,U_shape,orthonormality_error,status
+2022-05,baseline,penultimate,"(768, 11)",4.481492405872267e-15,PASS
+2022-05,baseline,last4_concat,"(3072, 12)",4.95640891355246e-15,PASS
+2022-05,dapt,penultimate,"(768, 8)",2.9673811657435277e-15,PASS
+2022-05,dapt,last4_concat,"(3072, 9)",4.289408590684111e-15,PASS
+2020-03,baseline,penultimate,"(768, 16)",5.6433596560592465e-15,PASS
+2020-03,baseline,last4_concat,"(3072, 19)",5.295508819946207e-15,PASS
+2020-03,dapt,penultimate,"(768, 14)",4.431515073014137e-15,PASS
+2020-03,dapt,last4_concat,"(3072, 16)",6.226702059362148e-15,PASS
+2022-06,baseline,penultimate,"(768, 10)",4.216026476809941e-15,PASS
+2022-06,baseline,last4_concat,"(3072, 12)",6.139258960006817e-15,PASS
+2022-06,dapt,penultimate,"(768, 7)",3.089917537829348e-15,PASS
+2022-06,dapt,last4_concat,"(3072, 8)",4.068590970062947e-15,PASS
+2020-11,baseline,penultimate,"(768, 19)",6.9081994379781186e-15,PASS
+2020-11,baseline,last4_concat,"(3072, 22)",6.567137489420226e-15,PASS
+2020-11,dapt,penultimate,"(768, 16)",6.494206709230802e-15,PASS
+2020-11,dapt,last4_concat,"(3072, 18)",6.5459928130187506e-15,PASS
+2021-05,baseline,penultimate,"(768, 15)",4.560865060905617e-15,PASS
+2021-05,baseline,last4_concat,"(3072, 17)",5.131545897641241e-15,PASS
+2021-05,dapt,penultimate,"(768, 12)",5.92988611953673e-15,PASS
+2021-05,dapt,last4_concat,"(3072, 14)",4.0599248490049536e-15,PASS

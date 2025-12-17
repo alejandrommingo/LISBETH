@@ -1,0 +1,5 @@
+decision,rationale,tradeoff
+Window Size 3 Months,Smoothing volatile news cycles,Lower temporal resolution
+Min Occurrences 20,Statistical stability for SVD,Loss of low-density periods
+Strategy Penultimate,Captures semantic abstraction,Less context-specific than Last4
+Strategy Last4 Concat,Rich contextual information,Higher dimensionality (4x)

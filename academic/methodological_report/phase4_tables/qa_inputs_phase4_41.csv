@@ -1,0 +1,10 @@
+check,status,details
+Load Phase 3 CSV,PASS,42 rows
+"Window Parameters (3M, Step 1M)",PASS,
+n_occurrences >= 20,PASS,Min: 20
+"Centroid Proj Range [-1,1]",PASS,0 violations
+"Subspace Proj Range [0,1]",PASS,0 violations
+Dimensions Definitions,PASS,Missing: set()
+Anchors CSV Dimensions,PASS,Missing: set()
+Anchors Baseline Embeddings,PASS,
+Anchors DAPT Embeddings,PASS,Comparison requested but DAPT might be missing

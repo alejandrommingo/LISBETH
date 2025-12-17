@@ -1,0 +1,5 @@
+window_end_month,drift_baseline_penultimate,type,metric,drift_baseline_last4_concat
+2021-03-01,3.163333449523301,drift_top5%,drift_baseline_penultimate,
+2023-01-01,3.1259048797313,drift_top5%,drift_baseline_penultimate,
+2021-03-01,,drift_top5%,drift_baseline_last4_concat,3.374868159843156
+2023-01-01,,drift_top5%,drift_baseline_last4_concat,3.2859522174045765

@@ -1,0 +1,5 @@
+,count,mean,std,min,25%,50%,75%,max,variant,strategy
+k_baseline_penultimate,42.0,13.238095238095237,6.29676465050737,4.0,9.0,13.5,17.0,28.0,baseline,penultimate
+k_baseline_last4_concat,42.0,15.30952380952381,7.744354655877057,4.0,10.0,15.5,19.75,34.0,baseline,last4_concat
+k_dapt_penultimate,42.0,10.5,4.570584634643475,3.0,7.0,10.0,13.0,20.0,dapt,penultimate
+k_dapt_last4_concat,42.0,12.166666666666666,5.7463314560902266,3.0,8.0,12.0,15.75,25.0,dapt,last4_concat

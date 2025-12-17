@@ -1,0 +1,5 @@
+variant,strategy,correlation_entropy_k
+baseline,penultimate,0.9686648686855273
+baseline,last4_concat,0.9605613640208671
+dapt,penultimate,0.9780297088310709
+dapt,last4_concat,0.9715460186303547

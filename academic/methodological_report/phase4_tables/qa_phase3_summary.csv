@@ -1,0 +1,5 @@
+metric,value
+total_rows,42
+n_occurrences_fail,0
+range_fail_centroid,0
+range_fail_subspace,0

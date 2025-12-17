@@ -1,0 +1,2 @@
+n_anchors,dimensions,models
+75,['funcional' 'social' 'afectiva'],"['embedding_baseline_penultimate', 'embedding_baseline_last4_concat', 'embedding_dapt_penultimate', 'embedding_dapt_last4_concat']"
