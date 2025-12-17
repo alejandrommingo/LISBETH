@@ -251,32 +251,35 @@ class Agent3AnchorGenerator:
         """
         col_name = f"embedding_{variant}_{strategy}"
         
-        # 1. Compute Mean Vector per Dimension
-        dim_vectors = []
+        # 1. Compute Global Mean for Anisotropy Correction
+        all_vecs = []
         dim_order = Phase3Config.DIMENSIONS # Ensure fixed order
         
+        # Collect all embeddings first
         for dim in dim_order:
-            # Parse JSONs
             raw_vecs = [np.array(json.loads(x)) for x in df[df['dimension'] == dim][col_name]]
             if not raw_vecs:
                 raise RuntimeError(f"FAIL: No anchors for dimension {dim}")
+            all_vecs.extend(raw_vecs)
             
-            # Mean
-            mean_vec = np.mean(raw_vecs, axis=0) # (d,)
+        global_mean = np.mean(all_vecs, axis=0) # (d,)
+        
+        # 2. Compute Centered Mean Vector per Dimension
+        dim_vectors = []
+        
+        for dim in dim_order:
+            raw_vecs = [np.array(json.loads(x)) for x in df[df['dimension'] == dim][col_name]]
             
-            # Normalize to L1=1? Protocol says "normalizar a norma 1" (L1 or L2? usually L2 for directions, but text says L1. 
-            # WAIT: "normalizar a norma 1" -> Typically sum(|x|) = 1. But for cosine similarity/subspaces usually L2.
-            # Let's check text carefully: "normalizar a norma 1".
-            # I will follow instruction STRICTLY. L1 norm.
-            # But wait, later it says "ortogonalizar con Löwdin → A (d×3)" and "verificar ortonormalidad: A^T A - I".
-            # Ortonormalidad implies L2 norm = 1. If I verify A^T A approx I, rows/cols must have L2=1.
-            # "normalizar a norma 1" might be a typo for "norma 1" (unit norm). In Spanish "norma 1" can mean "norm equal to 1" (unit norm, implicitly L2).
-            # Given the requirement for A^T A = I, it MUST be L2 normalization. 
-            # I will assume L2 normalization.
+            # Apply Correction: Subtract Global Mean
+            centered_vecs = [v - global_mean for v in raw_vecs]
             
+            # Mean of Centered Vectors
+            mean_vec = np.mean(centered_vecs, axis=0) # (d,)
+            
+            # Normalize to Unit Norm (L2)
             norm = np.linalg.norm(mean_vec)
             if norm < 1e-9:
-                raise RuntimeError(f"FAIL: Zero vector for dimension {dim}")
+                raise RuntimeError(f"FAIL: Zero vector for dimension {dim} after centering")
             unit_vec = mean_vec / norm
             dim_vectors.append(unit_vec)
             

@@ -26,11 +26,11 @@
 24,drift,dapt,penultimate,2021-09-01,2.4532436632895083,absolute
 25,drift,dapt,penultimate,2022-10-01,2.108096734905673,delta
 26,drift,dapt,penultimate,2022-06-01,1.6025643953397903,delta
-27,drift,dapt,penultimate,2022-07-01,1.5940836919571473,delta
+27,drift,dapt,penultimate,2022-07-01,1.5940836919571475,delta
 28,drift,dapt,penultimate,2021-02-01,1.472734145115154,delta
 29,drift,dapt,penultimate,2021-09-01,1.311611222219856,delta
 30,drift,dapt,last4_concat,2022-10-01,2.823736194018157,absolute
-31,drift,dapt,last4_concat,2023-01-01,2.6750746751829158,absolute
+31,drift,dapt,last4_concat,2023-01-01,2.675074675182916,absolute
 32,drift,dapt,last4_concat,2019-11-01,2.56991056762745,absolute
 33,drift,dapt,last4_concat,2021-09-01,2.5463669808437004,absolute
 34,drift,dapt,last4_concat,2020-06-01,2.530802106570502,absolute

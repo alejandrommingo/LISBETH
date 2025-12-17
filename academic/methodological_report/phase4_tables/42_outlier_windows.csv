@@ -6,4 +6,4 @@ window_end_month,metric,variant,strategy,value
 2019-11-01,drift,dapt,penultimate,2.5606143600331093
 2022-10-01,drift,dapt,penultimate,2.6818613531834035
 2022-10-01,drift,dapt,last4_concat,2.823736194018157
-2023-01-01,drift,dapt,last4_concat,2.6750746751829158
+2023-01-01,drift,dapt,last4_concat,2.675074675182916
