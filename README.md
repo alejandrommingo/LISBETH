@@ -9,87 +9,149 @@
 
 ## 📖 Descripción del Proyecto
 
-**Lisbeth** es un sistema de investigación computacional diseñado para analizar cómo la aplicación "Yape" ha trascendido su función financiera para convertirse en un **Actor Social** en la cultura peruana. 
+**Lisbeth** es un sistema de investigación computacional ("Laboratorio") diseñado para analizar la evolución semántica de la aplicación "Yape" en la prensa peruana (2016-2023). El sistema combina técnicas avanzadas de **NLP (Modelos Transformadores Adaptados al Dominio)** con **Sociología Digital** para cuantificar cómo la marca ha transitado de ser una herramienta financiera a un "Actor Social" legítimo.
 
-El proyecto combina **Sociología Digital** y **Procesamiento de Lenguaje Natural (NLP)** para rastrear la evolución semántica de la marca en la prensa nacional (2016-2023), identificando cómo los medios construyen y transforman su legitimidad (de la "innovación funcional" a la "solidaridad cotidiana").
+El núcleo metodológico reside en la corrección de la **Anisotropía** del espacio vectorial y el análisis de **Subespacios Semánticos** dinámicos, permitiendo medir matemáticamente conceptos abstractos como la "Deriva Semántica" y la "Proyección Sociológica".
 
 ---
 
 ## 🏗️ Arquitectura y Fases del Proyecto
 
-El desarrollo se estructura en fases secuenciales que transforman datos no estructurados en conocimiento sociológico.
+El sistema se orquesta mediante una CLI maestra: `pipeline_manager.py`.
 
-### ✅ Fase 1: Data Harvesting (Recolector de Noticias)
-*Infraestructura de recolección masiva y curación de corpus.*
+### ✅ Fase 1: Data Harvesting (Recolector Granular)
+*Infraestructura de recolección de noticias resiliente.*
 
-*   **Fuentes Híbridas**: Integración de **GDELT** (histórico profundo), **Google News** y **RSS** directos.
-*   **Cobertura**: +30 medios peruanos (El Comercio, La República, Gestión, RPP, etc.).
-*   **Capacidades Técnicas**:
-    *   **Multi-Keyword Targeting**: Rastreo simultáneo de variantes (`Yape`, `Yapear`, `Yapeo`, `Plin`).
-    *   **Daily Chunking**: Algoritmo de segmentación diaria para maximizar la recuperación de datos históricos (superando límites de API).
-    *   **WAF Bypass**: Navegación simulada para extraer contenido de sitios protegidos (Client-Side Rendering).
-    *   **Relevance Scoring**: Clasificación automática de artículos según la densidad terminológica.
+*   **Estrategia "Day x Media"**: A diferencia de scrapers tradicionales que hacen consultas masivas, Lisbeth itera **día por día** y **medio por medio** (ej. "Solo El Comercio el 12/03/2020"). Esto bypass-ea las limitaciones de retorno de GDELT (max 250 registros) y asegura una completitud histórica cercana al 100%.
+*   **Fuentes Híbridas**: GDELT (primaria), Google News (backup), RSS (tiempo real).
+*   **Resiliencia**:
+    *   Manejo de "Soft 404s" y contenido renderizado por JS (Client-Side) mediante selectores CSS específicos por dominio (`src/news_harvester/domains.py`).
+    *   Fallback automático a la librería `trafilatura` para extracción de texto limpio.
 
-### ✅ Fase 2: Infraestructura NLP
-*Adaptación de modelos y vectorización semántica.*
+### ✅ Fase 2: Infraestructura NLP (La "Fábrica de Embeddings")
+*Transformación de texto en tensores matemáticos ajustados.*
 
-*   **Core Model**: Modelos Transformadores del Estado del Arte (SOTA) en español (`PlanTL-GOB-ES/roberta-large-bne` o `xlm-roberta`).
-*   **DAPT (Domain-Adaptive Pretraining)**: Re-entrenamiento del modelo base con el corpus periodístico peruano recolectado para "enseñarle" terminología local y jerga financiera específica.
-*   **Subword Mean Pooling**: Estrategia matemática para reconstruir vectores de palabras fragmentadas por el tokenizador (ej: `['Yap', '##ear']` $\rightarrow$ `Yapear`).
-*   **Extracción de Embeddings Contextuales**: Generación de representaciones vectoriales densas para cada ocurrencia de la marca, capturando el significado exacto según su contexto de uso.
+#### 2.1 Model Management
+El sistema soporta cualquier modelo de Hugging Face, pero está optimizado para modelos monolingües en español:
+*   **`PlanTL-GOB-ES/roberta-large-bne`**: SOTA (State of the Art) entrenado por la Biblioteca Nacional de España.
+*   **`dccuchile/bert-base-spanish-wwm-uncased`** (BETO): Alternativa robusta y ligera.
 
-### 🚧 Fase 3: Análisis de Subespacios Semánticos (En Progreso)
-*Modelado matemático de la evolución.*
-*   Análisis de Componentes Principales (PCA) y SVD sobre ventanas temporales.
-*   Detección de Deriva Semántica (*Semantic Drift*).
-*   Proyección de Marcos Teóricos (Confianza, Inclusión, Riesgo).
+#### 2.2 DAPT (Domain-Adaptive Pretraining)
+Antes de extraer embeddings, el modelo base se somete a un "re-entrenamiento" ligero (**DAPT**) utilizando el corpus recolectado en Fase 1.
+*   **Por qué**: Un modelo genérico no entiende que "Yapear" es un verbo o que "Plin" es un competidor, no un sonido.
+*   **Parámetros**:
+    *   MLM (Masked Language Modeling): Se ocultan aleatoriamente palabras del corpus peruano y el modelo aprende a predecirlas.
+    *   Epochs: Configurable (default 3).
+
+#### 2.3 Extracción de Embeddings Contextuales
+Para cada mención de la palabra clave (ej. "Yape"):
+1.  **Tokenización**: Se localiza la palabra en la oración. Si se fragmenta en sub-tokens (`['Yap', '##ear']`), se aplica **Mean Pooling** para obtener un único vector.
+2.  **Layer Strategy**: Se extraen las activaciones ocultas.
+    *   **`penultimate`**: La capa anterior a la última (mejor para representaciones geométricas generales).
+    *   **`last4_concat`**: Concatenación de las últimas 4 capas (4096 dims para RoBERTa-large), capturando matices sintácticos y semánticos profundos.
+
+### ✅ Fase 3: Análisis de Subespacios (El "Laboratorio Matemático")
+*Donde ocurre la magia sociológica.*
+
+#### 3.1 Dual Anisotropy Correction
+Los modelos de lenguaje sufren de "Anisotropía": todos los vectores tienden a ocupar un cono estrecho en el espacio, distorsionando las distancias (coseno).
+Lisbeth implementa un protocolo estricto de comparación:
+1.  **RAW (Crudo)**: Embeddings tal cual salen del modelo.
+2.  **CORRECTED (Corregido)**: Se calcula el **Vector Medio Global** ($\mu_{global}$) de todo el corpus y se resta de cada embedding ($v' = v - \mu_{global}$). Esto "centra" la nube de puntos y revela la verdadera estructura semántica interna.
+
+#### 3.2 Subespacios Dinámicos
+Se agrupan los embeddings en **Ventanas Deslizantes** (ej. Trimestrales) y se aplica **SVD (Singular Value Decomposition)** para hallar los ejes principales de significado en ese periodo.
+
+#### 3.3 Métricas
+*   **Semantic Drift**: Distancia Grassmanniana entre el subespacio del tiempo $t$ y el tiempo $t+1$. Mide cuánto ha cambiado el significado.
+*   **Entropía**: Dispersión de los valores singulares. Alta entropía = Significado difuso/polisémico.
+*   **Proyección de Anclas**: Se definen vectores teóricos (ej. "Seguridad", "Comunidad") y se mide matemáticamente cuánto se acerca el concepto "Yape" a ellos.
+
+### ✅ Fase 4: Reportes Automáticos
+Generación de Notebooks y Gráficos (Heatmaps, Series Temporales) que comparan visualmente las condiciones RAW vs CORRECTED para validar los hallazgos.
 
 ---
 
-## 🚀 Guía de Uso Rápida
+## 🚀 Guía Exhaustiva de Parámetros y Ejecución
 
-### 1. Instalación
+El script `pipeline_manager.py` es el punto de entrada único.
+
+### 0. Configuración Inicial
 ```bash
-git clone https://github.com/alejandrommingo/LISBETH.git
-cd LISBETH
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+# Definir lista de medios (disponible en repo)
+cat data/media_list.csv
+# name,domain,type
+# elcomercio,elcomercio.pe,national
+# ...
 ```
 
-### 2. Recolección de Datos (Harvester)
-Descargar noticias históricas de medios peruanos:
+### 1. Descarga de Modelos
+Pre-descarga los modelos para evitar latencia o errores de red durante el proceso.
 ```bash
-# Ejemplo: Descargar noticias de 2020 a 2021 sobre Yape
-PYTHONPATH=src python -m news_harvester prototype \
+python pipeline_manager.py phase2 download-models \
+    --models "dccuchile/bert-base-spanish-wwm-uncased" "PlanTL-GOB-ES/roberta-large-bne"
+```
+
+### 2. Fase 1: Recolección (Harvesting)
+**Parámetros Clave**:
+*   `--pipeline granular`: (Implícito en lógica interna) Activa el loop "Day x Media".
+*   `--media-list`: Ruta al CSV de medios. Si se omite, busca en todo GDELT (menos exhaustivo).
+*   `--keyword`: Palabras a rastrear.
+
+```bash
+python pipeline_manager.py phase1 \
     --keyword "Yape" "Yapear" \
     --from 2020-01-01 --to 2021-01-01 \
-    --media all \
-    --output data/yape_2020.csv
+    --media-list data/media_list.csv \
+    --output data/raw_news_2020.csv
 ```
 
-### 3. Pipeline NLP
-Ejecutar las herramientas de procesamiento de lenguaje:
+### 3. Fase 2: Procesamiento NLP
 
-**A. Adaptación al Dominio (DAPT):**
-Entrenar el modelo con el texto descargado para mejorar su comprensión:
+#### Paso 3.1: DAPT (Opcional pero Recomendado)
+Entrena el modelo base sobre tu data.
+*   `--model`: Modelo base de HuggingFace.
+*   `--epochs`: 3 suele ser suficiente para adaptación ligera.
+
 ```bash
-python src/cli.py dapt --data data/corpus.txt --output models/lisbeth-roberta-adapted --epochs 3
+python pipeline_manager.py phase2 dapt \
+    --data data/raw_news_2020.csv \
+    --output models/lisbeth-adapted-2020 \
+    --model "dccuchile/bert-base-spanish-wwm-uncased" \
+    --epochs 3
 ```
 
-**B. Extracción de Embeddings:**
-Generar la base de datos vectorial para análisis:
+#### Paso 3.2: Extracción
+Genera el dataset vectorial.
+*   `--dapt_model`: Ruta al modelo entrenado en 3.1.
+*   `--model`: Modelo base (se usa para generar la línea base comparativa).
+
 ```bash
-python src/cli.py extract \
-    --data_dir data \
-    --keywords Yape Yapear Plin \
-    --output data/embeddings_final.parquet
+python pipeline_manager.py phase2 extract \
+    --data_dir data/raw_news_dir_2020 \
+    --output data/embeddings_2020.csv \
+    --model "dccuchile/bert-base-spanish-wwm-uncased" \
+    --dapt_model models/lisbeth-adapted-2020
 ```
 
-### 4. Demo Educativa
-Explora el funcionamiento interno paso a paso:
+### 4. Fase 3: Análisis de Subespacios
+Ejecuta el cálculo masivo de métricas. No requiere parámetros complejos, ya que la configuración científica (ventanas, anclas, estrategias) se define en `src/phase3/schemas.py` o se infiere.
+*   **Output**: Genera una estructura de carpetas `artifacts/` con subespacios `.npz` y un CSV resumen `phase3_results.csv`.
+
 ```bash
-jupyter notebook notebooks/phase2_demo.ipynb
+python pipeline_manager.py phase3 \
+    --input data/embeddings_2020.csv \
+    --output-dir results/analysis_2020
+```
+
+### 5. Fase 4: Reporte
+Genera el entregable final.
+*   Crea un Notebook de Jupyter (`report.ipynb`) en la carpeta de destino con todas las gráficas pre-cargadas.
+
+```bash
+python pipeline_manager.py phase4 \
+    --input results/analysis_2020/phase3_results.csv \
+    --output_dir results/final_report_2020
 ```
 
 ---
@@ -98,19 +160,21 @@ jupyter notebook notebooks/phase2_demo.ipynb
 
 ```
 LISBETH/
-├── academic/           # Documentación teórica (TFM Intro, Metdología)
-├── data/               # Corpus crudo y Datasets (Ignorados por git)
-├── models/             # Checkpoints de modelos NLP (Ignorados por git)
-├── notebooks/          # Demos y experimentos (Jupyter)
-├── src/
-│   ├── data/           # Lógica de scraping y curación
-│   ├── nlp/            # Modelos, DAPT y Extracción
-│   ├── utils/          # Herramientas auxiliares
-│   └── cli.py          # Punto de entrada unificado
-├── tests/              # Tests unitarios y de integración
-└── README.md           # Documentación del proyecto
+├── academic/               # Templates de reportes metodológicos
+├── data/                   # Datos (Gitignored, salvo media_list.csv)
+│   └── media_list.csv      # Catálogo de medios peruanos
+├── execution_test/         # Artefactos de validación (Run de prueba)
+├── notebooks/              # Demos interactivos
+├── models/                 # Modelos (Gitignored)
+├── scripts/                # Utilidades (Generator de assets)
+├── src/                    # Código Fuente
+│   ├── news_harvester/     # Lógica scraping (Domains, Selectors)
+│   ├── nlp/                # Lógica DAPT y tensores
+│   ├── phase3/             # Matemáticas (SVD, Grassman, Procrustes)
+│   └── phase4/             # Reporting logic
+├── pipeline_manager.py     # CLI Maestro
+└── README.md               # Este archivo
 ```
 
 ---
-
-**Estado del Proyecto**: Fase 2 Completada (Diciembre 2025).
+**Lisbeth v2.0 - Enero 2026**

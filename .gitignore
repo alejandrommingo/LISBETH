@@ -42,3 +42,11 @@ data/phase4/
 data/old_data_backup/
 data/test_phase2/
 models/
+
+# Project Plans (Private)
+MASTER_PLAN.md
+RESEARCH_METHODOLOGY.md
+
+# Exceptions (Tracked Data)
+!data/media_list.csv
+execution_test/

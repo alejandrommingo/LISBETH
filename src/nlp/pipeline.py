@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 class OccurrenceExpander:
     """
-    Agente 1: Transforms document-level data into occurrence-level data.
+    Step 1: Transforms document-level data into occurrence-level data.
     """
     CANONICAL_KEYWORD = "yape"
     KEYWORDS = [
@@ -120,9 +120,9 @@ class OccurrenceExpander:
                     "char_end_in_sent": end_char - sent_start
                 }
 
-class TokenizerAgent:
+class TokenizerComponent:
     """
-    Agente 2: Translates character spans to token spans for a specific model tokenizer.
+    Step 2: Translates character spans to token spans for a specific model tokenizer.
     """
     def __init__(self, tokenizer):
         self.tokenizer = tokenizer
@@ -173,7 +173,7 @@ class TokenizerAgent:
 
 class EmbeddingWorker:
     """
-    Agente 3: Extracts contextual embeddings.
+    Step 3: Extracts contextual embeddings.
     """
     def __init__(self, baseline_model: LisbethModel, dapt_model: LisbethModel):
         self.baseline_model = baseline_model
@@ -216,7 +216,7 @@ class EmbeddingWorker:
             # Extract per occurrence
             for i, occ in enumerate(batch_occurrences):
                 # We need to realign tokens because batch tokenizer might have different padding/offsets than the Agent2 single tokenizer?
-                # Actually Agent2 isn't used for THE inference tokenization here if we re-tokenize.
+                # We need to realign tokens because batch tokenizer might have different padding/offsets than the single tokenizer?
                 # CRITICAL: We should reuse the token alignment or re-calculate it.
                 # Re-calculating with the same tokenizer is safer for batching.
                 
@@ -248,7 +248,7 @@ class EmbeddingWorker:
             
             for variant_name, model_obj in [("baseline", self.baseline_model), ("dapt", self.dapt_model)]:
                 # Use the helper we'll add to LisbethModel, or do it here.
-                # Doing it here ensures Agent3 logic is self-contained.
+                # Doing it here ensures extraction logic is self-contained.
                 
                 # Tokenize (single)
                 inp = model_obj.tokenizer(occ["context_sentence"], return_tensors="pt", truncation=True, max_length=512, return_offsets_mapping=True).to(model_obj.device)
@@ -299,7 +299,7 @@ class EmbeddingWorker:
 
 class CSVBuilder:
     """
-    Agente 5: Ensamblador final.
+    Step 5: Ensamblador final.
     """
     def build(self, occurrences: List[Dict], run_id: str) -> pd.DataFrame:
         if not occurrences:
@@ -356,7 +356,7 @@ class CSVBuilder:
 
 class PipelineOrchestrator:
     """
-    Agente 0: Orquestador.
+    Step 0: Orquestador.
     """
     def __init__(self, baseline_model_name, dapt_model_name):
         logger.info("Initializing Pipeline Orchestrator...")

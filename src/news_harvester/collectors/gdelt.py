@@ -24,7 +24,7 @@ GDELT_SEEN_FORMAT = "%Y%m%dT%H%M%SZ"
 GDELT_COMPACT_DATETIME_FORMAT = "%Y%m%d%H%M%S"
 GDELT_COMPACT_DATE_FORMAT = "%Y%m%d"
 GDELT_COMPACT_DATE_FORMAT = "%Y%m%d"
-# DEFAULT_USER_AGENT eliminado en favor de fake-useragent
+# Random User Agent
 
 logger = logging.getLogger(__name__)
 ua = UserAgent()

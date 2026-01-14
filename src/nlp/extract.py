@@ -38,7 +38,7 @@ def extract_embeddings(data_dir: str, output_file: str, keywords: list, model_na
     orchestrator.run(data_dir, output_file)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Extract embeddings for keywords using Multi-Agent Pipeline")
+    parser = argparse.ArgumentParser(description="Extract embeddings for keywords using NLP Pipeline")
     parser.add_argument("--data_dir", required=True, help="Directory containing input CSVs")
     parser.add_argument("--output", required=True, help="Output CSV file")
     parser.add_argument("--keywords", nargs="+", default=[], help="Keywords (Ignored, internal specs used)")

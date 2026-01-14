@@ -1,0 +1,5 @@
+domain,type,active,rss_url,selector_body
+elcomercio.pe,national,true,https://elcomercio.pe/arc/outboundfeeds/rss/,div#contenido;div[itemprop='articleBody']
+larepublica.pe,national,true,https://larepublica.pe/rss/,div.story-content;div.content-body
+gestion.pe,financial,true,https://gestion.pe/arc/outboundfeeds/rss/,div.story-contents;section.article-body
+rpp.pe,multimedia,true,https://rpp.pe/feed,

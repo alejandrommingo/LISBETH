@@ -140,6 +140,12 @@ def _build_parser() -> argparse.ArgumentParser:
         default=["all"],
         help="Medios a filtrar por nombre (ej: elcomercio rpp). 'all' incluye todos.",
     )
+    harvest_parser.add_argument(
+        "--media-list",
+        type=Path,
+        default=None,
+        help="Ruta a un archivo CSV con la lista de medios (columnas: domain,type,active,rss_url).",
+    )
     return parser
 
 
@@ -167,6 +173,24 @@ def _save_articles(articles: Sequence[Article], output_path: Path) -> None:
         orjson.dumps(payload, option=orjson.OPT_INDENT_2 | orjson.OPT_SORT_KEYS)
     )
 
+def _load_media_from_csv(csv_path: Path) -> tuple[list[str], list[str]]:
+    import pandas as pd
+    try:
+        df = pd.read_csv(csv_path)
+        # Check cols
+        if "active" in df.columns:
+            # Filter active (bool or string 'true')
+            # Handle string case insensitive
+            df['active'] = df['active'].astype(str).str.lower()
+            df = df[df['active'] == 'true']
+            
+        domains = df['domain'].tolist() if 'domain' in df.columns else []
+        rss_urls = df['rss_url'].dropna().tolist() if 'rss_url' in df.columns else []
+        
+        return domains, rss_urls
+    except Exception as e:
+        print(f"Error cargando media list CSV: {e}")
+        return [], []
 
 def main() -> None:
     parser = _build_parser()
@@ -260,25 +284,42 @@ def run_harvest(args: argparse.Namespace, settings: Settings) -> None:
     selected_sources = args.sources
     print(f"Fuentes seleccionadas: {selected_sources}")
 
-    # Resolver dominios
+    # Resolver dominios y RSS
     target_domains = []
-    if "all" in args.media:
-        # "all" ahora significa SIN FILTRO DE DOMINIO (confiamos en sourceCountry:PE)
-        target_domains = None
-        print("Medios seleccionados: TODOS (Sin filtro de dominio, solo país)")
+    target_rss = []
+    
+    if args.media_list:
+        print(f"Cargando medios desde archivo: {args.media_list}")
+        csv_domains, csv_rss = _load_media_from_csv(args.media_list)
+        if csv_domains:
+            target_domains = csv_domains
+            print(f"  -> Dominios cargados: {len(target_domains)}")
+        if csv_rss:
+            target_rss = csv_rss
+            print(f"  -> Feeds RSS cargados: {len(target_rss)}")
     else:
-        for media_name in args.media:
-            if media_name in PERUVIAN_MEDIA:
-                target_domains.append(PERUVIAN_MEDIA[media_name])
-            else:
-                print(f"Advertencia: Medio '{media_name}' no reconocido.")
-        if not target_domains:
-            print(
-                "Advertencia: No se seleccionaron dominios válidos. Usando TODOS por defecto."
-            )
+        # Fallback a lógica original
+        if "all" in args.media:
+            # "all" ahora significa SIN FILTRO DE DOMINIO (confiamos en sourceCountry:PE)
             target_domains = None
+            print("Medios seleccionados: TODOS (Sin filtro de dominio, solo país)")
+            target_rss = list(MEDIA_RSS_FEEDS.values())
         else:
-            print(f"Medios seleccionados: {args.media} ({target_domains})")
+            for media_name in args.media:
+                if media_name in PERUVIAN_MEDIA:
+                    target_domains.append(PERUVIAN_MEDIA[media_name])
+                    if media_name in MEDIA_RSS_FEEDS:
+                        target_rss.append(MEDIA_RSS_FEEDS[media_name])
+                else:
+                    print(f"Advertencia: Medio '{media_name}' no reconocido.")
+            if not target_domains and not target_rss:
+                print(
+                    "Advertencia: No se seleccionaron dominios válidos. Usando TODOS por defecto."
+                )
+                target_domains = None
+                target_rss = list(MEDIA_RSS_FEEDS.values())
+            else:
+                print(f"Medios seleccionados: {args.media} ({target_domains})")
     
     keyword_display = ", ".join(keywords)
 
@@ -327,22 +368,55 @@ def run_harvest(args: argparse.Namespace, settings: Settings) -> None:
         
         daily_articles: list[Article] = []
         try:
-            # GDELT
-            if "gdelt" in selected_sources:
-                batch = fetch_articles(
-                    keyword=keywords,
-                    start=current_date,
-                    end=day_end,
-                    source_country=settings.source_country,
-                    domains=target_domains,
-                    max_records=settings.gdelt_max_records,
-                    timeout=settings.request_timeout,
-                )
-                for a in batch:
-                    a.source_api = "GDELT"
-                daily_articles.extend(batch)
+            # MEDIA-SPECIFIC FETCHING VS BATCH
+            # Granular Strategy: If media_list is loaded, iterate day x media to maximize GDELT output (limit 250 per call)
+            # Batch Strategy: (Default) Query all domains at once per day.
             
-            # GOOGLE NEWS (Complemento)
+            # Use granular if explicitly requested OR simply default to it if domains are many?
+            # User requested "Granular" execution. Let's make it the default if target_domains are present,
+            # or add a flag. Since this is "run_harvest" (main pipeline), better to be robust.
+            
+            # WARN: If target_domains list is HUGE (e.g. 500), this will take forever.
+            # But usually it's ~20-50. 
+            
+            if target_domains and len(target_domains) > 0:
+                print(f"    -> Ejecutando búsqueda Granular (Día x {len(target_domains)} Medios)...")
+                for domain in target_domains:
+                     try:
+                        # Query: keyword + domain:example.com
+                        # fetch_articles handles this but we need to pass single domain
+                        media_batch = fetch_articles(
+                            keyword=keywords,
+                            start=current_date,
+                            end=day_end,
+                            source_country=settings.source_country,
+                            domains=[domain], # Single domain
+                            max_records=settings.gdelt_max_records, # 250 per media!
+                            timeout=settings.request_timeout,
+                        )
+                        for a in media_batch: a.source_api = "GDELT"
+                        daily_articles.extend(media_batch)
+                     except Exception as e_med:
+                         # Log debug but don't stop
+                         # print(f"       Err {domain}: {e_med}")
+                         pass
+            else:
+                # Fallback to Batch (No domains filter, or user didn't provide list)
+                if "gdelt" in selected_sources:
+                    batch = fetch_articles(
+                        keyword=keywords,
+                        start=current_date,
+                        end=day_end,
+                        source_country=settings.source_country,
+                        domains=target_domains, # All or None
+                        max_records=settings.gdelt_max_records,
+                        timeout=settings.request_timeout,
+                    )
+                    for a in batch:
+                        a.source_api = "GDELT"
+                    daily_articles.extend(batch)
+            
+            # GOOGLE NEWS (Complemento) - Keep as Batch usually, blocking issues otherwise
             if "google" in selected_sources:
                 try:
                     google_batch = fetch_google_news(
@@ -352,29 +426,38 @@ def run_harvest(args: argparse.Namespace, settings: Settings) -> None:
                         source_country=settings.source_country
                     )
                     for a in google_batch:
+                        # Filter by domains if provided
+                        if target_domains:
+                            hit = False
+                            for d in target_domains:
+                                if d in str(a.url):
+                                    hit = True
+                                    break
+                            if not hit:
+                                continue
+                                
                         a.source_api = "GOOGLE"
-                    daily_articles.extend(google_batch)
+                        daily_articles.extend(google_batch)
                 except Exception as e_google:
                     print(f"    -> Error Google News: {e_google}")
 
             # RSS (Medios locales directos)
-            # Solo tiene sentido consultar RSS si estamos procesando el día de hoy
-            # De lo contrario, estaríamos consultando lo mismo para cada día histórico (ineficiente e incorrecto)
             today = dt.datetime.now(dt.timezone.utc).date()
             if "rss" in selected_sources and current_date.date() == today:
                  try:
-                    # Collect all feeds
-                    feed_urls = list(MEDIA_RSS_FEEDS.values())
-                    rss_batch = fetch_from_rss(
-                        feeds=feed_urls,
-                        keyword=keywords,
-                        start=current_date,
-                        end=day_end
-                    )
-                    
-                    for a in rss_batch:
-                        a.source_api = "RSS"
-                    daily_articles.extend(rss_batch)
+                    # Use extracted RSS feeds
+                    feed_urls = target_rss
+                    if feed_urls:
+                        rss_batch = fetch_from_rss(
+                            feeds=feed_urls,
+                            keyword=keywords,
+                            start=current_date,
+                            end=day_end
+                        )
+                        
+                        for a in rss_batch:
+                            a.source_api = "RSS"
+                        daily_articles.extend(rss_batch)
                  except Exception as e_rss:
                      print(f"    -> Error RSS: {e_rss}")
 

@@ -8,8 +8,8 @@ import logging
 
 import trafilatura
 from bs4 import BeautifulSoup
-from readability import Document
-import justext
+# from readability import Document
+# import justext
 
 from ..domains import DOMAIN_SELECTORS
 
@@ -182,23 +182,12 @@ def _extract_trafilatura(html: str) -> str | None:
         return None
 
 def _extract_readability(html: str) -> str | None:
-    try:
-        doc = Document(html)
-        # summary() devuelve HTML simplificado, necesitamos pasarlo a texto
-        # Usamos BeautifulSoup para limpiar ese HTML simplificado
-        clean_html = doc.summary()
-        soup = BeautifulSoup(clean_html, "lxml")
-        return soup.get_text(separator="\n")
-    except Exception:
-        return None
+    # DISABLED: missing dependency
+    return None
 
 def _extract_justext(html: str) -> str | None:
-    try:
-        paragraphs = justext.justext(html, justext.get_stoplist("Spanish"))
-        text = "\n".join([p.text for p in paragraphs if not p.is_boilerplate])
-        return text if text.strip() else None
-    except Exception:
-        return None
+    # DISABLED: missing dependency
+    return None
 
 def _extract_selectors(html: str, domain: str) -> str | None:
     if not domain or domain not in DOMAIN_SELECTORS:
