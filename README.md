@@ -1,34 +1,34 @@
-# LISBETH: De la Billetera Móvil al Actor Social
-## Análisis Computacional de la Representación Mediática de Yape en el Perú
+# LISBETH
+## Análisis Computacional de la Representación Mediática mediante Subespacios Semánticos Dinámicos
 
-**TFM - Máster en Big Data y Data Science | UNED**
-* **Investigador**: Alejandro Mingo
-* **Proyecto**: `LISBETH` (Legitimacy & Identity Semantic BERT Embedding Time-series Harvester)
+**Laboratorio - Máster en Metodología de las Ciencias del Comportamiento y de la Salud | UNED**
+* **Profesor**: Alejandro Martínez-Mingo
+* **Proyecto**: `LISBETH`
 
 ---
 
-## 📖 Descripción del Proyecto
+## Descripción del Proyecto
 
-**Lisbeth** es un sistema de investigación computacional ("Laboratorio") diseñado para analizar la evolución semántica de la aplicación "Yape" en la prensa peruana (2016-2023). El sistema combina técnicas avanzadas de **NLP (Modelos Transformadores Adaptados al Dominio)** con **Sociología Digital** para cuantificar cómo la marca ha transitado de ser una herramienta financiera a un "Actor Social" legítimo.
+**Lisbeth** es un sistema de investigación computacional ("Laboratorio") diseñado para analizar la evolución semántica de conceptos en prensa. El sistema combina técnicas avanzadas de **NLP (Modelos Transformadores Adaptados al Dominio)** con **Sociología Digital** para cuantificar cómo un concepto concreto evoluciona en el tiempo. El sistema se ha desarrollado inicialmente para el estudio de la evolución de la marca "Yape" en el contexto mediático peruano.
 
 El núcleo metodológico reside en la corrección de la **Anisotropía** del espacio vectorial y el análisis de **Subespacios Semánticos** dinámicos, permitiendo medir matemáticamente conceptos abstractos como la "Deriva Semántica" y la "Proyección Sociológica".
 
 ---
 
-## 🏗️ Arquitectura y Fases del Proyecto
+## Arquitectura y Fases del Proyecto
 
 El sistema se orquesta mediante una CLI maestra: `pipeline_manager.py`.
 
-### ✅ Fase 1: Data Harvesting (Recolector Granular)
+### Fase 1: Data Harvesting (Recolector Granular)
 *Infraestructura de recolección de noticias resiliente.*
 
-*   **Estrategia "Day x Media"**: A diferencia de scrapers tradicionales que hacen consultas masivas, Lisbeth itera **día por día** y **medio por medio** (ej. "Solo El Comercio el 12/03/2020"). Esto bypass-ea las limitaciones de retorno de GDELT (max 250 registros) y asegura una completitud histórica cercana al 100%.
+*   **Estrategia "Day x Media"**: A diferencia de scrapers tradicionales que hacen consultas masivas, Lisbeth itera **día por día** y **medio por medio**. Esto bypass-ea las limitaciones de retorno de GDELT (max 250 registros) y asegura una completitud histórica cercana al 100%.
 *   **Fuentes Híbridas**: GDELT (primaria), Google News (backup), RSS (tiempo real).
 *   **Resiliencia**:
     *   Manejo de "Soft 404s" y contenido renderizado por JS (Client-Side) mediante selectores CSS específicos por dominio (`src/news_harvester/domains.py`).
     *   Fallback automático a la librería `trafilatura` para extracción de texto limpio.
 
-### ✅ Fase 2: Infraestructura NLP (La "Fábrica de Embeddings")
+### Fase 2: Infraestructura NLP
 *Transformación de texto en tensores matemáticos ajustados.*
 
 #### 2.1 Model Management
@@ -38,7 +38,7 @@ El sistema soporta cualquier modelo de Hugging Face, pero está optimizado para 
 
 #### 2.2 DAPT (Domain-Adaptive Pretraining)
 Antes de extraer embeddings, el modelo base se somete a un "re-entrenamiento" ligero (**DAPT**) utilizando el corpus recolectado en Fase 1.
-*   **Por qué**: Un modelo genérico no entiende que "Yapear" es un verbo o que "Plin" es un competidor, no un sonido.
+*   **Por qué**: Un modelo genérico no entiende ciertos términos concretos del contexto del estudio. Por ejemplo, que "Yapear" es un verbo o que "Plin" es un competidor, no un sonido.
 *   **Parámetros**:
     *   MLM (Masked Language Modeling): Se ocultan aleatoriamente palabras del corpus peruano y el modelo aprende a predecirlas.
     *   Epochs: Configurable (default 3).
@@ -50,14 +50,14 @@ Para cada mención de la palabra clave (ej. "Yape"):
     *   **`penultimate`**: La capa anterior a la última (mejor para representaciones geométricas generales).
     *   **`last4_concat`**: Concatenación de las últimas 4 capas (4096 dims para RoBERTa-large), capturando matices sintácticos y semánticos profundos.
 
-### ✅ Fase 3: Análisis de Subespacios (El "Laboratorio Matemático")
+### Fase 3: Análisis de Subespacios (El "Laboratorio Matemático")
 *Donde ocurre la magia sociológica.*
 
 #### 3.1 Dual Anisotropy Correction
 Los modelos de lenguaje sufren de "Anisotropía": todos los vectores tienden a ocupar un cono estrecho en el espacio, distorsionando las distancias (coseno).
 Lisbeth implementa un protocolo estricto de comparación:
 1.  **RAW (Crudo)**: Embeddings tal cual salen del modelo.
-2.  **CORRECTED (Corregido)**: Se calcula el **Vector Medio Global** ($\mu_{global}$) de todo el corpus y se resta de cada embedding ($v' = v - \mu_{global}$). Esto "centra" la nube de puntos y revela la verdadera estructura semántica interna.
+2.  **CORRECTED (Corregido)**: Se calcula el **Vector Medio Global** ($\mu_{global}$) de todo el corpus y se resta de cada embedding ($v' = v - \mu_{global}$). Esto "centra" la nube de puntos y revela la verdadera estructura semántica interna. Otros tipos de corrección de la Anisontropía se aplicarán en futuras actualizaciones del proyecto.
 
 #### 3.2 Subespacios Dinámicos
 Se agrupan los embeddings en **Ventanas Deslizantes** (ej. Trimestrales) y se aplica **SVD (Singular Value Decomposition)** para hallar los ejes principales de significado en ese periodo.
@@ -65,14 +65,14 @@ Se agrupan los embeddings en **Ventanas Deslizantes** (ej. Trimestrales) y se ap
 #### 3.3 Métricas
 *   **Semantic Drift**: Distancia Grassmanniana entre el subespacio del tiempo $t$ y el tiempo $t+1$. Mide cuánto ha cambiado el significado.
 *   **Entropía**: Dispersión de los valores singulares. Alta entropía = Significado difuso/polisémico.
-*   **Proyección de Anclas**: Se definen vectores teóricos (ej. "Seguridad", "Comunidad") y se mide matemáticamente cuánto se acerca el concepto "Yape" a ellos.
+*   **Proyección de Anclas**: Se definen vectores teóricos (ej. "Seguridad", "Comunidad") y se mide matemáticamente cuánto se acerca el concepto objetivo a ellos.
 
-### ✅ Fase 4: Reportes Automáticos
+### Fase 4: Reportes Automáticos
 Generación de Notebooks y Gráficos (Heatmaps, Series Temporales) que comparan visualmente las condiciones RAW vs CORRECTED para validar los hallazgos.
 
 ---
 
-## 🚀 Guía Exhaustiva de Parámetros y Ejecución
+## Guía Exhaustiva de Parámetros y Ejecución
 
 El script `pipeline_manager.py` es el punto de entrada único.
 
