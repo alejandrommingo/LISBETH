@@ -1,4 +1,4 @@
-window,dominant_dimension,persistence_proxy,coherence_proxy,social_actor_status
-2021-03,funcional,-0.749,0.011,Ambiguous
-2022-05,funcional,0.288,0.096,Ambiguous
-2020-01,funcional,-0.985,0.229,Ambiguous
+variante,estrategia,ventana,dimensión_dominante,persistencia_proxy,discrepancia_proxy,estado_actor_social
+Baseline,Penultimate (penúltima capa),2021-03,funcional,0.0,0.011,Ambigua
+Baseline,Penultimate (penúltima capa),2022-05,funcional,0.288,0.096,Ambigua
+Baseline,Penultimate (penúltima capa),2020-01,funcional,0.0,0.229,Ambigua

@@ -3,8 +3,11 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 import numpy as np
+import os
+import sys
 from matplotlib.dates import DateFormatter
 import matplotlib.dates as mdates
+
 
 def setup_pub_style():
     """
@@ -64,13 +67,17 @@ def _handle_date_axis(ax, df, date_col, categorical=True):
         plt.xticks(rotation=45)
         return df[date_col], None
 
-def plot_news_volume(df, date_col='date', count_col='count', output_path=None):
+def plot_news_volume(df, date_col='date', count_col='volumen_yape', output_path=None):
     """Plots bar chart of news volume per window."""
     setup_pub_style()
     fig, ax = plt.subplots(figsize=(12, 5))
     df = df.sort_values(by=date_col)
     
     # Force categorical for volume to see all bars clearly
+    # Fallback to 'count' if 'volumen_yape' not found
+    if count_col not in df.columns and 'count' in df.columns:
+        count_col = 'count'
+        
     x_vals, _ = _handle_date_axis(ax, df, date_col, categorical=True)
     
     ax.bar(x_vals, df[count_col], color='#2c3e50', alpha=0.7)
@@ -247,3 +254,162 @@ def plot_scree_sequence(eigen_data, title="Evolución de la Estructura Dimension
     plt.tight_layout()
     if output_path: plt.savefig(output_path, bbox_inches='tight')
     plt.show()
+
+
+def plot_flexible_projection(df, anchors_path=None, variant='baseline', strategy='penultimate', 
+                           condition='corrected', target_dimension='centroid', 
+                           title_prefix=None, output_path=None):
+    """
+    Plots projection of a specific Yape Subspace dimension onto Anchors.
+    
+    Args:
+        df: DataFrame with date and path info.
+        anchors_path: Optional. Path to .npz file containing anchors. If None, derived from params.
+        variant: 'baseline' or 'dapt'
+        strategy: 'penultimate' or 'last4_concat'
+        condition: 'corrected' or 'raw'
+        target_dimension: 'centroid' (mean of subspace) or integer (1-based index of dimension)
+        title_prefix: Title for the plot.
+        output_path: Path to save image.
+    """
+    setup_pub_style()
+    
+    # 1. Resolve Root and Directories
+    # Try different relative paths to find data relative to current working directory
+    possible_roots = ['.', '..', os.path.join('..', '..')]
+    root = '.'
+    for r in possible_roots:
+        if os.path.exists(os.path.join(r, 'data', 'phase3')):
+            root = r
+            break
+            
+    # 2. Derive Anchors Path if not provided
+    if anchors_path is None:
+        # Expected: anchors_{variant}_{strategy}_{condition}.npz
+        anchors_path = os.path.join(root, 'data', 'phase3', 'artifacts', 'anchors', 
+                                    f"anchors_{variant}_{strategy}_{condition}.npz")
+        
+    if not os.path.exists(anchors_path):
+        # Try fallback without condition suffix
+        alt_path = os.path.join(root, 'data', 'phase3', 'artifacts', 'anchors', 
+                                f"anchors_{variant}_{strategy}.npz")
+        if os.path.exists(alt_path):
+            anchors_path = alt_path
+        else:
+            print(f"Error: Anchors file not found at {anchors_path}")
+            return
+
+    try:
+        with np.load(anchors_path) as data:
+            anchors_mat = data['A']  # Shape (D, 3)
+            anchor_dims = ['funcional', 'social', 'afectiva'] # Standard
+    except Exception as e:
+        print(f"Error loading anchors: {e}")
+        return
+
+    # Prepare Data Storage
+    results = {d: [] for d in anchor_dims}
+    dates = []
+    
+    # Iterate and Calculate
+    if 'date' in df.columns:
+        df = df.sort_values('date')
+        
+    subspaces_dir = os.path.join(root, 'data', 'phase3', 'artifacts', 'subspaces')
+    
+    for idx, row in df.iterrows():
+        # Handle date formatting
+        if hasattr(row['date'], 'strftime'):
+            date_str = row['date'].strftime('%Y-%m')
+        else:
+            date_str = str(row['date'])[:7] # Assume YYYY-MM prefix
+            
+        fname = f"window_{date_str}_{variant}_{strategy}"
+        
+        # Try candidates for subspace file
+        # Note: Subspace U is same for raw/corrected because of centering
+        candidates = [
+            f"{fname}_{condition}.npz",
+            f"{fname}.npz" 
+        ]
+        
+        found = False
+        U = None
+        mu = None
+        
+        for cand in candidates:
+            FullPath = os.path.join(subspaces_dir, cand)
+            if os.path.exists(FullPath):
+                try:
+                    with np.load(FullPath) as data:
+                         U = data['U'] if 'U' in data else None
+                         # Use 'mean_vector' as per Pipeline Protocol
+                         if 'mean_vector' in data: mu = data['mean_vector']
+                         elif 'mu' in data: mu = data['mu']
+                         
+                         found = True
+                         break
+                except:
+                    continue
+        
+        if not found:
+            continue
+            
+        # Select vector to project
+        vec_to_project = None
+        if target_dimension == 'centroid':
+            if mu is not None:
+                vec_to_project = mu
+        elif isinstance(target_dimension, int):
+            dim_idx = target_dimension - 1
+            if U is not None and U.shape[1] > dim_idx:
+                vec_to_project = U[:, dim_idx]
+                
+        if vec_to_project is not None:
+            norm_v = np.linalg.norm(vec_to_project)
+            if norm_v > 1e-9:
+                dates.append(date_str)
+                for i, dim in enumerate(anchor_dims):
+                    anchor_vec = anchors_mat[:, i]
+                    norm_a = np.linalg.norm(anchor_vec)
+                    sim = 0.0
+                    if norm_a > 1e-9:
+                         sim = np.dot(vec_to_project, anchor_vec) / (norm_v * norm_a)
+                    
+                    if isinstance(target_dimension, int):
+                        sim = abs(sim) # Sign of eigenvectors is arbitrary
+                        
+                    results[dim].append(sim)
+
+    # Plotting
+    if not dates:
+        print("No data found to plot. Checked directory:", subspaces_dir)
+        return
+
+    plot_df = pd.DataFrame(results)
+    plot_df['date'] = dates
+    
+    fig, axes = plt.subplots(1, 3, figsize=(18, 5), sharey=True)
+    colors = {'funcional': '#004e66', 'social': '#5d7667', 'afectiva': '#d14a2b'}
+    
+    x_vals, labels = _handle_date_axis(axes[0], plot_df, 'date', categorical=True)
+    
+    for i, dim in enumerate(anchor_dims):
+        ax = axes[i]
+        c = colors[dim]
+        
+        ax.plot(x_vals, plot_df[dim], color=c, marker='o', linestyle='-', linewidth=2)
+        ax.set_xticks(x_vals)
+        ax.set_xticklabels(labels, rotation=45, ha='right')
+        
+        ax.set_title(f"Dimensión {dim.capitalize()}")
+        ax.grid(True, alpha=0.3)
+        if i == 0:
+            ax.set_ylabel("Similitud Coseno")
+
+    full_title = title_prefix if title_prefix else f"Proyección: {target_dimension} ({condition})"
+    plt.suptitle(full_title, y=1.05)
+    plt.tight_layout()
+    if output_path: plt.savefig(output_path, bbox_inches='tight')
+    plt.show()
+
