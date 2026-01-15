@@ -182,18 +182,20 @@ python pipeline_manager.py phase4 \
 
 ```
 LISBETH/
-├── academic/               # Templates de reportes metodológicos
+├── academic/               # Reportes y notebooks metodológicos
 ├── data/                   # Datos (Gitignored, salvo media_list.csv)
-│   └── media_list.csv      # Catálogo de medios peruanos
-├── execution_test/         # Artefactos de validación (Run de prueba)
-├── notebooks/              # Demos interactivos
+│   └── media_list.csv      # Catálogo de medios
+├── execution_test/         # Artefactos de validación (Local)
+├── english_experiment/     # Datos y resultados experimentales (Local)
+├── notebooks/              # Demos interactivos y EDA
 ├── models/                 # Modelos (Gitignored)
-├── scripts/                # Utilidades (Generator de assets)
+├── scripts/                # Scripts de utilidad
+├── tools/                  # Herramientas de diagnóstico
 ├── src/                    # Código Fuente
 │   ├── news_harvester/     # Lógica scraping (Domains, Selectors)
 │   ├── nlp/                # Lógica DAPT y tensores
-│   ├── phase3/             # Matemáticas (SVD, Grassman, Procrustes)
-│   └── phase4/             # Reporting logic
+│   ├── subspace_analysis/  # Matemáticas (SVD, Grassman, Procrustes)
+│   └── reporting/          # Lógica de generación de reportes
 ├── pipeline_manager.py     # CLI Maestro
 └── README.md               # Este archivo
 ```
