@@ -9,7 +9,7 @@
 
 ## Descripción del Proyecto
 
-**Lisbeth** es un sistema de investigación computacional ("Laboratorio") diseñado para analizar la evolución semántica de conceptos en prensa. El sistema combina técnicas avanzadas de **NLP (Modelos Transformadores Adaptados al Dominio)** con **Sociología Digital** para cuantificar cómo un concepto concreto evoluciona en el tiempo. El sistema se ha desarrollado inicialmente para el estudio de la evolución de la marca "Yape" en el contexto mediático peruano.
+**Lisbeth** es un sistema de investigación computacional ("Laboratorio") diseñado para analizar la evolución semántica de conceptos en prensa. El sistema combina técnicas avanzadas de **NLP (Modelos Transformadores Adaptados al Dominio)** con **Sociología Digital** para cuantificar cómo un concepto concreto evoluciona en el tiempo. Aunque desarrollado inicialmente para el contexto peruano, la arquitectura es **agnóstica al idioma y país**, permitiendo experimentos en inglés (ej. "Lockdown" en UK), español, o cualquier otro idioma soportado por modelos Hugging Face.
 
 El núcleo metodológico reside en la corrección de la **Anisotropía** del espacio vectorial y el análisis de **Subespacios Semánticos** dinámicos, permitiendo medir matemáticamente conceptos abstractos como la "Deriva Semántica" y la "Proyección Sociológica".
 
@@ -99,11 +99,20 @@ python pipeline_manager.py phase2 download-models \
 *   `--keyword`: Palabras a rastrear.
 
 ```bash
+# Ejemplo Perú (Default)
 python pipeline_manager.py phase1 \
     --keyword "Yape" "Yapear" \
     --from 2020-01-01 --to 2021-01-01 \
     --media-list data/media_list.csv \
     --output data/raw_news_2020.csv
+
+# Ejemplo Reino Unido (UK)
+python pipeline_manager.py phase1 \
+    --keyword "lockdown" \
+    --from 2020-03-01 --to 2020-06-30 \
+    --country UK \
+    --media-list english_experiment/media_list.csv \
+    --output english_experiment/news_lockdown.csv
 ```
 
 ### 3. Fase 2: Procesamiento NLP
@@ -135,13 +144,26 @@ python pipeline_manager.py phase2 extract \
 ```
 
 ### 4. Fase 3: Análisis de Subespacios
-Ejecuta el cálculo masivo de métricas. No requiere parámetros complejos, ya que la configuración científica (ventanas, anclas, estrategias) se define en `src/phase3/schemas.py` o se infiere.
-*   **Output**: Genera una estructura de carpetas `artifacts/` con subespacios `.npz` y un CSV resumen `phase3_results.csv`.
+Ejecuta el cálculo masivo de métricas. Soporta configuración dinámica de modelos y anclas.
+*   `--anchors`: JSON con definiciones de dimensiones (opcional).
+*   `--baseline-model`: Modelo base para alineación.
+*   `--dapt-model`: Modelo adaptado.
+*   `--window-months`: Tamaño de la ventana deslizante.
 
 ```bash
+# Ejemplo estándar
 python pipeline_manager.py phase3 \
     --input data/embeddings_2020.csv \
     --output-dir results/analysis_2020
+
+# Ejemplo Avanzado (Experimento en Inglés / Otra Configuración)
+python pipeline_manager.py phase3 \
+    --input english_experiment/embeddings.csv \
+    --output-dir english_experiment/results \
+    --baseline-model "roberta-base" \
+    --dapt-model "english_experiment/models/dapt" \
+    --anchors "english_experiment/anchors.json" \
+    --window-months 1
 ```
 
 ### 5. Fase 4: Reporte

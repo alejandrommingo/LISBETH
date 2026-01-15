@@ -141,6 +141,11 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Medios a filtrar por nombre (ej: elcomercio rpp). 'all' incluye todos.",
     )
     harvest_parser.add_argument(
+        "--country",
+        default=None,
+        help="Código de país GDELT (ej: PE, US). Sobrescribe la configuración por defecto.",
+    )
+    harvest_parser.add_argument(
         "--media-list",
         type=Path,
         default=None,
@@ -191,6 +196,8 @@ def _load_media_from_csv(csv_path: Path) -> tuple[list[str], list[str]]:
     except Exception as e:
         print(f"Error cargando media list CSV: {e}")
         return [], []
+
+
 
 def main() -> None:
     parser = _build_parser()
@@ -278,11 +285,17 @@ def run_harvest(args: argparse.Namespace, settings: Settings) -> None:
     date_from = args.date_from or settings.prototype_start
     date_to = args.date_to or settings.prototype_end
 
+    # Override country if provided
+    if args.country:
+        print(f"Sobrescribiendo país: {settings.source_country} -> {args.country}")
+        settings.source_country = args.country
+
     start_dt, end_dt = _date_range_to_datetimes(date_from, date_to)
     articles: list[Article] = []
 
     selected_sources = args.sources
     print(f"Fuentes seleccionadas: {selected_sources}")
+    print(f"País objetivo: {settings.source_country}")
 
     # Resolver dominios y RSS
     target_domains = []
@@ -291,6 +304,7 @@ def run_harvest(args: argparse.Namespace, settings: Settings) -> None:
     if args.media_list:
         print(f"Cargando medios desde archivo: {args.media_list}")
         csv_domains, csv_rss = _load_media_from_csv(args.media_list)
+
         if csv_domains:
             target_domains = csv_domains
             print(f"  -> Dominios cargados: {len(target_domains)}")

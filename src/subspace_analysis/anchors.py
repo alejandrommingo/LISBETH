@@ -116,30 +116,21 @@ class AnchorGenerator:
         return anchors
 
     def _load_models(self):
-        gob_model = "PlanTL-GOB-ES/roberta-large-bne"
-        beto_model = "dccuchile/bert-base-spanish-wwm-uncased"
+        baseline_model = Phase3Config.BASELINE_MODEL
         
         self.model_baseline = None
         
-        logger.info(f"Attempting to load Baseline: {gob_model}...")
+        logger.info(f"Attempting to load Baseline: {baseline_model}...")
         try:
-            self.tokenizer_baseline = AutoTokenizer.from_pretrained(gob_model)
-            self.model_baseline = AutoModel.from_pretrained(gob_model).to(self.device).eval()
-            self.model_fingerprint_baseline = gob_model
-            logger.info(f"Successfully loaded GOB: {gob_model}")
+            self.tokenizer_baseline = AutoTokenizer.from_pretrained(baseline_model)
+            self.model_baseline = AutoModel.from_pretrained(baseline_model).to(self.device).eval()
+            self.model_fingerprint_baseline = baseline_model
+            logger.info(f"Successfully loaded Baseline: {baseline_model}")
         except Exception as e:
-            logger.warning(f"Failed to load GOB ({gob_model}): {e}")
-            logger.info(f"Attempting fallback to BETO: {beto_model}...")
-            
-            try:
-                 self.tokenizer_baseline = AutoTokenizer.from_pretrained(beto_model)
-                 self.model_baseline = AutoModel.from_pretrained(beto_model).to(self.device).eval()
-                 self.model_fingerprint_baseline = beto_model
-                 logger.info(f"Successfully loaded BETO: {beto_model}")
-            except Exception as e2:
-                 raise RuntimeError(f"FAIL: Could not load GOB OR BETO: {e2}")
+            logger.warning(f"Failed to load Baseline ({baseline_model}): {e}")
+            raise RuntimeError(f"FAIL: Could not load Baseline Model: {e}")
 
-        dapt_path = "models/beto-adapted"
+        dapt_path = Phase3Config.DAPT_MODEL_PATH
         logger.info(f"Loading DAPT: {dapt_path}")
         if not os.path.exists(dapt_path):
              logger.error(f"FAIL: DAPT model path not found: {dapt_path}")

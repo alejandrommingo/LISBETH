@@ -20,8 +20,9 @@ class OccurrenceExpander:
         "Yapeé", "Yapeó", "Yapeado", "Yapeame", "Yapearte", "Yapearon", "Yapearía"
     ]
 
-    def __init__(self):
-        pass
+    def __init__(self, keywords: List[str] = None):
+        if keywords:
+            self.KEYWORDS = keywords
 
     def process(self, df: pd.DataFrame) -> Generator[Dict, None, None]:
         """
@@ -111,7 +112,8 @@ class OccurrenceExpander:
                     "newspaper": row.get("newspaper") or row.get("domain"),
                     "source_api": row.get("source_dataset") or row.get("source"),
                     "url": row.get("url"),
-                    "keyword_canonical": self.CANONICAL_KEYWORD,
+                    # Use matched keyword as canonical (normalized) for dynamic lists
+                    "keyword_canonical": match["keyword_matched"].capitalize(), 
                     "keyword_matched": match["keyword_matched"],
                     "char_start_in_doc": idx_found,
                     "char_end_in_doc": end_char,
@@ -358,12 +360,12 @@ class PipelineOrchestrator:
     """
     Step 0: Orquestador.
     """
-    def __init__(self, baseline_model_name, dapt_model_name):
+    def __init__(self, baseline_model_name, dapt_model_name, keywords: List[str] = None):
         logger.info("Initializing Pipeline Orchestrator...")
         self.baseline_model = LisbethModel(model_name=baseline_model_name)
         self.dapt_model = LisbethModel(model_name=dapt_model_name)
         
-        self.expander = OccurrenceExpander()
+        self.expander = OccurrenceExpander(keywords=keywords)
         self.worker = EmbeddingWorker(self.baseline_model, self.dapt_model)
         self.builder = CSVBuilder()
         

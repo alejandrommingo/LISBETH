@@ -33,8 +33,8 @@ def extract_embeddings(data_dir: str, output_file: str, keywords: list, model_na
     logger.info(f"Starting Phase 2 Pipeline.")
     logger.info(f"Baseline: {model_name}")
     logger.info(f"DAPT: {dapt_model_name}")
-
-    orchestrator = PipelineOrchestrator(baseline_model_name=model_name, dapt_model_name=dapt_model_name)
+    
+    orchestrator = PipelineOrchestrator(baseline_model_name=model_name, dapt_model_name=dapt_model_name, keywords=keywords)
     orchestrator.run(data_dir, output_file)
 
 if __name__ == "__main__":

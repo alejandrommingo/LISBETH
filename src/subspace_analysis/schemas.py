@@ -9,6 +9,7 @@ import os
 class Phase3Config:
     WINDOW_MONTHS = 3
     STEP_MONTHS = 1
+    MIN_WINDOWS = 2 # Minimum valid windows required for success
     N_MIN_OCCURRENCES = 20
     LOW_DENSITY_FLAG = 30
     VARIANTS = ["baseline", "dapt"] # DAPT enabled (BETO-adapted)
@@ -31,6 +32,10 @@ class Phase3Config:
     
     INPUT_CSV = pathlib.Path(os.getenv("LISBETH_PHASE3_INPUT_CSV", "data/phase2/embeddings_occurrences.csv"))
     ANCHOR_DEF_JSON = pathlib.Path(os.getenv("LISBETH_PHASE3_ANCHORS_JSON", "data/dimensiones_ancla.json"))
+    
+    # Model Paths
+    DAPT_MODEL_PATH = "models/beto-adapted"
+    BASELINE_MODEL = "PlanTL-GOB-ES/roberta-large-bne" # Default Spanish SOTA
     
     # Phase 2 Schema Columns
     COL_OCCURRENCE_ID = "occurrence_id"

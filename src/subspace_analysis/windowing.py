@@ -82,16 +82,19 @@ class WindowPipelineStep:
         
         valid_windows = []
         
-        # 3. Calculate rolling window 3 months
-        if len(all_months) < 3:
-             logger.warning("Data span is less than 3 months. No full windows possible.")
+        # 3. Calculate rolling window
+        win_size = Phase3Config.WINDOW_MONTHS
+        
+        if len(all_months) < win_size:
+             logger.warning(f"Data span ({len(all_months)} months) is less than window ({win_size} months). No full windows possible.")
         
         window_counts = []
 
-        for i in range(2, len(all_months)):
+        for i in range(win_size - 1, len(all_months)):
             end_month = all_months[i]
-            # Window includes i-2, i-1, i
-            window_months = [all_months[i-2], all_months[i-1], all_months[i]]
+            # Window slice
+            start_idx = i - (win_size - 1)
+            window_months = all_months[start_idx : i + 1]
             start_month = window_months[0]
             
             # Select rows
@@ -120,9 +123,9 @@ class WindowPipelineStep:
         counts_df.to_csv(manifest_path, index=False)
         logger.info(f"Saved window counts to {manifest_path}")
 
-        # 6. FAIL Condition: < 2 valid windows
-        if len(valid_windows) < 2:
-            raise RuntimeError(f"FAIL: Only {len(valid_windows)} valid windows found (minimum 2 required). Checks details in {manifest_path}")
+        # 6. FAIL Condition: check min windows
+        if len(valid_windows) < Phase3Config.MIN_WINDOWS:
+            raise RuntimeError(f"FAIL: Only {len(valid_windows)} valid windows found (minimum {Phase3Config.MIN_WINDOWS} required). Checks details in {manifest_path}")
             
         logger.info(f"WindowPipelineStep: Found {len(valid_windows)} valid windows.")
         return valid_windows

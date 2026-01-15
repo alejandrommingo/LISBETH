@@ -163,7 +163,7 @@ def fetch_articles(
     keyword: str | list[str],
     start: dt.datetime,
     end: dt.datetime,
-    source_country: str | None = "PER",
+    source_country: str | None = "PE",
     domains: Sequence[str] | None = None,
     max_records: int = 250,
     timeout: float = 30.0,
@@ -201,6 +201,15 @@ def fetch_articles(
     query_parts = [keyword_part]
     if source_country:
         query_parts.append(f"sourceCountry:{source_country.upper()}")
+    
+    if domains:
+        # Optimization: Filter by domain at source
+        domain_parts = [f"domain:{d}" for d in domains]
+        if len(domain_parts) > 1:
+            query_parts.append(f"({' OR '.join(domain_parts)})")
+        else:
+            query_parts.append(domain_parts[0])
+
     query = " ".join(query_parts)
 
     params = {

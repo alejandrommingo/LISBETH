@@ -34,6 +34,7 @@ def main():
     p1.add_argument("--output", type=Path, help="Output file")
     p1.add_argument("--sources", nargs="+", default=["gdelt"], choices=["gdelt", "google", "rss"])
     p1.add_argument("--no-download", dest="download_html", action="store_false", help="Skip HTML download (Metadata only)")
+    p1.add_argument("--country", default=None, help="GDELT Country Code (default: PE)")
     p1.set_defaults(download_html=True)
     
     # --- PHASE 2: NLP ---
@@ -57,6 +58,7 @@ def main():
     p2_ext.add_argument("--output", required=True, help="Output Parquet")
     p2_ext.add_argument("--dapt_model", required=True, help="Path to DAPT model")
     p2_ext.add_argument("--model", default="PlanTL-GOB-ES/roberta-large-bne", help="Baseline Model")
+    p2_ext.add_argument("--keywords", nargs="+", default=["Yape"], help="Keywords to extract")
     
     # Anchors
     p2_anc = p2_subs.add_parser("anchors", help="Build Anchors")
@@ -67,6 +69,12 @@ def main():
     p3 = subparsers.add_parser("phase3", help="Subspace Analysis")
     p3.add_argument("--input", required=True, help="Path to embeddings_occurrences.csv (Phase 2 Output)")
     p3.add_argument("--output-dir", required=True, help="Directory to save Phase 3 results")
+    p3.add_argument("--window-months", type=int, default=None, help="Override default window size (months)")
+    p3.add_argument("--min-windows", type=int, default=None, help="Override minimum required windows")
+    p3.add_argument("--dapt-model", default=None, help="Path to DAPT Model for Anchors")
+    p3.add_argument("--baseline-model", default=None, help="HuggingFace Model ID for Baseline (e.g. roberta-base)")
+    p3.add_argument("--iters", type=int, default=None, help="Override bootstrap/horn iterations")
+    p3.add_argument("--anchors", default=None, help="Path to Anchors JSON definition")
     
     # --- PHASE 4: REPORT ---
     p4 = subparsers.add_parser("phase4", help="Generate Reports")
@@ -84,12 +92,7 @@ def main():
         h_args = argparse.Namespace(
             command="harvest",
             keyword=args.keyword,
-            date_from=args.date_from, # str, run_harvest expects Date? No, _parse_iso_date in cli. But here we get str.
-            # We need to parse dates if run_harvest expects dates.
-            # cli._parse_iso_date converts str to date. 
-            # run_harvest logic: date_from = args.date_from OR settings...
-            # if args.date_from is a date object.
-            # Let's parse them here.
+            date_from=args.date_from, 
             date_to=args.date_to,
             media_list=args.media_list,
             output=args.output,
@@ -97,7 +100,8 @@ def main():
             format="csv", # Default
             download_html=args.download_html,
             no_fetch_html=not args.download_html,
-            media=["all"] # Default if list provided
+            media=["all"], # Default if list provided
+            country=args.country
         )
         
         # Parse dates
@@ -144,7 +148,7 @@ def main():
             # Extract requires keywords? "Ignored in Phase 2 pipeline" says cli.py?
             # extract_parser.add_argument("--keywords", ...)
             # We pass empty list or dummy
-            extract_embeddings(args.data_dir, args.output, ["Yape"], args.model, dapt_model_name=args.dapt_model)
+            extract_embeddings(args.data_dir, args.output, args.keywords, args.model, dapt_model_name=args.dapt_model)
         elif args.step == "anchors":
             # build_anchors(json_path, output_path, model_name)
             # Use base model for anchors? AnchorGenerator uses both.
@@ -200,11 +204,44 @@ def main():
              Phase3Config.ARTIFACTS_DIR = out_path / "artifacts"
              Phase3Config.ANCHORS_DIR = Phase3Config.ARTIFACTS_DIR / "anchors"
              Phase3Config.SUBSPACES_DIR = Phase3Config.ARTIFACTS_DIR / "subspaces"
+             
+             # Runtime Config Patching for Verification
+             if args.window_months is not None:
+                 logger.info(f"Overriding WINDOW_MONTHS: {args.window_months}")
+                 Phase3Config.WINDOW_MONTHS = args.window_months
+             if args.min_windows is not None:
+                 logger.info(f"Overriding MIN_WINDOWS: {args.min_windows}")
+                 Phase3Config.MIN_WINDOWS = args.min_windows
+             
+             if args.dapt_model:
+                 logger.info(f"Overriding DAPT_MODEL_PATH: {args.dapt_model}")
+                 Phase3Config.DAPT_MODEL_PATH = args.dapt_model
+                 
+             if args.baseline_model:
+                 logger.info(f"Overriding BASELINE_MODEL: {args.baseline_model}")
+                 Phase3Config.BASELINE_MODEL = args.baseline_model
+                 
+             if args.iters:
+                 logger.info(f"Overriding Iterations: {args.iters}")
+                 Phase3Config.B_BOOT = args.iters
+                 Phase3Config.B_HORN = args.iters
+                 
+             if args.anchors:
+                 logger.info(f"Overriding ANCHORS_JSON: {args.anchors}")
+                 Phase3Config.ANCHOR_DEF_JSON = Path(args.anchors)
+                 
+             # Ensuring output structure exists
+             os.makedirs(Phase3Config.ARTIFACTS_DIR, exist_ok=True)
+             os.makedirs(Phase3Config.ANCHORS_DIR, exist_ok=True)
+             os.makedirs(Phase3Config.SUBSPACES_DIR, exist_ok=True)
              Phase3Config.MANIFESTS_DIR = Phase3Config.ARTIFACTS_DIR / "manifests"
              Phase3Config.OUTPUT_CSV = out_path / "phase3_results.csv"
              Phase3Config.INPUT_CSV = Path(args.input)
              # Force low threshold for small test batches (Yape 2020 has few records)
              Phase3Config.N_MIN_OCCURRENCES = 1
+             # Phase3Config.WINDOW_MONTHS = 1 # Verification: Allow single month window
+             # Phase3Config.MIN_WINDOWS = 1 # Verification: Allow single window result
+             # Phase3Config.ANCHOR_DEF_JSON = Path("execution_test/anchors_test.json") # Verification: Mock anchors
              
              # Create Dirs
              Phase3Config.ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)

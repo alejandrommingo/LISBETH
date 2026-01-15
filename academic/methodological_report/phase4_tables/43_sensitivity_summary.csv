@@ -1,3 +1,3 @@
-,metric,mean_low_density,mean_normal,mann_whitney_p,significant_diff
-0,entropy_baseline_penultimate,2.849962888692305,4.029310435772464,1.694481797177561e-08,True
-1,drift_baseline_penultimate,1.4563037090191102,1.993998420011349,0.1250181256599742,False
+metric,mean_low_density,mean_normal,mann_whitney_p,significant_diff
+entropy_baseline_penultimate,2.849962888692305,4.029310435772464,1.694481797177561e-08,True
+drift_baseline_penultimate,1.4563037090191102,1.993998420011349,0.1250181256599742,False
