@@ -185,8 +185,6 @@ LISBETH/
 ├── academic/               # Reportes y notebooks metodológicos
 ├── data/                   # Datos (Gitignored, salvo media_list.csv)
 │   └── media_list.csv      # Catálogo de medios
-├── execution_test/         # Artefactos de validación (Local)
-├── english_experiment/     # Datos y resultados experimentales (Local)
 ├── notebooks/              # Demos interactivos y EDA
 ├── models/                 # Modelos (Gitignored)
 ├── scripts/                # Scripts de utilidad
