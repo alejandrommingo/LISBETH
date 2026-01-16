@@ -17,7 +17,12 @@ class PipelineAssembler:
         # 1. Build Phase 3 Results DataFrame
         df_results = pd.DataFrame(results_buffer)
         
-        # 2. Calculate Deltas (DAPT - Baseline)
+        # 2. Flatten Schema (Align with Legacy Data Structure)
+        # We promote 'raw' values to default/un-suffixed keys.
+        # We drop 'corrected' values for Global Metrics as they aren't supported in legacy schema.
+        self._flatten_schema(df_results)
+
+        # 3. Calculate Deltas (DAPT - Baseline)
         self._calculate_deltas(df_results)
         
         # 3. Save phase3_results.csv
@@ -115,3 +120,44 @@ class PipelineAssembler:
                 s_dapt = f"subspace_proj_{dim}_dapt_{strategy}"
                 if s_base in df and s_dapt in df:
                     df[f"delta_subspace_proj_{dim}_{strategy}"] = df[s_dapt] - df[s_base]
+
+    def _flatten_schema(self, df: pd.DataFrame):
+        """
+        Modifies DataFrame in-place to align with legacy data/phase3 schema.
+        1. For GLOBAL METRICS (k, entropy, drift, procrustes, subspace_path):
+           - Copy '{metric}_{variant}_{strategy}_raw' -> '{metric}_{variant}_{strategy}'
+           - Drop both '_raw' and '_corrected' columns for these metrics.
+        2. For PROJECTIONS (centroid, subspace):
+           - Copy '{metric}_{dim}_{variant}_{strategy}_raw' -> '{metric}_{dim}_{variant}_{strategy}'
+           - KEEP original '_raw' and '_corrected' columns (legacy schema supports them).
+        """
+        flatten_globals = ["k", "entropy", "drift", "procrustes", "subspace_path"]
+        flatten_projections = ["centroid_proj", "subspace_proj"]
+        
+        # We iterate over definition permutations
+        for variant in Phase3Config.VARIANTS:
+            for strategy in Phase3Config.STRATEGIES:
+                suffix = f"{variant}_{strategy}"
+                
+                # 1. Globals
+                for metric in flatten_globals:
+                    raw_col = f"{metric}_{suffix}_raw"
+                    corr_col = f"{metric}_{suffix}_corrected"
+                    target_col = f"{metric}_{suffix}"
+                    
+                    if raw_col in df.columns:
+                        df[target_col] = df[raw_col]
+                        # Drop originals to match strict legacy schema
+                        df.drop(columns=[raw_col], inplace=True)
+                        if corr_col in df.columns:
+                            df.drop(columns=[corr_col], inplace=True)
+                            
+                # 2. Projections (Per Dimension)
+                for dim in Phase3Config.DIMENSIONS:
+                    for metric in flatten_projections:
+                        raw_col = f"{metric}_{dim}_{suffix}_raw"
+                        target_col = f"{metric}_{dim}_{suffix}"
+                        
+                        if raw_col in df.columns:
+                            df[target_col] = df[raw_col]
+                            # construct 'corrected' col name just to be aware, but we KEEP both for projections.

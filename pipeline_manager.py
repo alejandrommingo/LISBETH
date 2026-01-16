@@ -17,6 +17,7 @@ from src.nlp.extract import extract_embeddings
 from src.nlp.build_anchors import build_anchors
 from src.subspace_analysis.pipeline import Phase3Orchestrator
 # Phase 4 imports to be determined (likely subprocess for notebooks or specific scripts)
+from src.reporting import Phase4Orchestrator
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("pipeline_manager")
@@ -254,46 +255,21 @@ def main():
     elif args.phase == "phase4":
         logger.info("Phase 4 Reporting...")
         
-        # Args: output_dir
-        out_dir = Path(args.output_dir)
-        assets_dir = out_dir / "assets"
-        nb_path = out_dir / "report.ipynb"
+        # Instantiate Orchestrator
+        # Assuming current working directory is project root, as enforced by sys.path.append(os.getcwd())
+        orchestrator = Phase4Orchestrator(project_root=os.getcwd())
         
-        # We need the Input CSV from Phase 3.
-        # Phase 4 parser didn't ask for it.
-        # I should add --input to Phase 4 parser.
-        
-        if "input" not in args:
-             logger.error("Phase 4 requires --input (Phase 3 Results CSV)")
-             sys.exit(1)
-             
-        # Call Generate Assets
-        cmd_assets = [
-            sys.executable, "src/reporting/assets.py",
-            "--input", str(args.input),
-            "--output", str(assets_dir)
-        ]
-        subprocess.check_call(cmd_assets)
-        
-        # Call Notebook Creator
-        # Need relative paths
+        # Execute Generation
         try:
-            rel_assets = os.path.relpath(assets_dir, out_dir) # should be 'assets'
-            rel_csv = os.path.relpath(Path(args.input), out_dir)
-        except ValueError:
-            # If paths are on different mounts or something?
-            rel_assets = str(assets_dir)
-            rel_csv = str(args.input)
-            
-        cmd_nb = [
-            sys.executable, "src/reporting/notebook.py",
-            "--output", str(nb_path),
-            "--assets_dir", rel_assets,
-            "--csv_path", rel_csv
-        ]
-        subprocess.check_call(cmd_nb)
-        
-        logger.info(f"Phase 4 Complete. Report at {nb_path}")
+            orchestrator.generate_reports(
+                phase3_csv_path=str(Path(args.input).resolve()),
+                output_dir_base=str(Path(args.output_dir).resolve())
+            )
+            logger.info("Phase 4 Execution Complete.")
+        except Exception as e:
+            logger.error(f"Phase 4 Failed: {e}")
+            # Ensure we exit with error code if it fails
+            sys.exit(1)
 
 if __name__ == "__main__":
     main()
